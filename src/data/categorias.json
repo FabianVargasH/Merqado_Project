@@ -1,0 +1,6 @@
+[
+  { "id": "electronica", "nombre": "Electrónica", "icono": "bi-cpu" },
+  { "id": "moda", "nombre": "Moda", "icono": "bi-bag" },
+  { "id": "hogar", "nombre": "Hogar y Living", "icono": "bi-house" },
+  { "id": "accesorios", "nombre": "Accesorios", "icono": "bi-watch" }
+]

@@ -1,0 +1,40 @@
+/* Estilos propios de la marca sobreescriben variables de Bootstrap sin tocar sus archivos. */
+
+:root {
+  --bs-primary: #4212de;
+  --bs-primary-rgb: 66, 18, 222;
+  --marca-primary: #4212de;
+  --marca-primary-hover: #5b3df5;
+}
+
+/* Bootstrap no reconstruye .btn-primary desde --bs-primary porque no es un color de Bootstrap, así que lo hacemos manualmente */
+.btn-primary {
+  --bs-btn-bg: var(--marca-primary);
+  --bs-btn-border-color: var(--marca-primary);
+  --bs-btn-hover-bg: var(--marca-primary-hover);
+  --bs-btn-hover-border-color: var(--marca-primary-hover);
+  --bs-btn-active-bg: var(--marca-primary-hover);
+  --bs-btn-active-border-color: var(--marca-primary-hover);
+}
+
+.text-primary {
+  color: var(--marca-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--marca-primary) !important;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: #f8f9fc;
+}
+
+
+.card-producto {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-producto:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(30, 30, 47, 0.08);
+}
