@@ -38,3 +38,10 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 10px 30px rgba(30, 30, 47, 0.08);
 }
+
+/* Deja espacio inferior en el celular para que la barra fija no tape el contenido. */
+@media (max-width: 991.98px) {
+  body {
+    padding-bottom: 72px;
+  }
+}

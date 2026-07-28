@@ -42,7 +42,7 @@
     "calificacion": 4.5,
     "resenas": 92,
     "stock": 60,
-    "imagen": "https://picsum.photos/seed/prod3/500/500",
+    "imagen": "https://www.steren.cr/media/catalog/product/cache/bb0cad18a6adb5d17b0efd58f4201a2f/image/21495020e/parlante-bluetooth-boombox-tws-350-w-pmpo-roja.jpg",
     "descripcion": "Parlante bluetooth con rejilla de tela y sonido envolvente para el hogar.",
     "destacado": true,
     "etiqueta": null
@@ -58,7 +58,7 @@
     "calificacion": 5.0,
     "resenas": 210,
     "stock": 15,
-    "imagen": "https://picsum.photos/seed/prod4/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/l/a/laptop-lenovo-ryzen-7-7735hs-loq-15arp10e-83s0001kgj-200619_1_.jpg?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700",
     "descripcion": "Laptop de alto rendimiento con teclado RGB y gráficos dedicados para juegos.",
     "destacado": true,
     "etiqueta": null
@@ -74,8 +74,8 @@
     "calificacion": 4.0,
     "resenas": 64,
     "stock": 30,
-    "imagen": "https://picsum.photos/seed/prod5/500/500",
-    "descripcion": "Teclado mecánico con keycaps blancos y base de aluminio cepillado.",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/t/e/teclado-gaming-trust-24407-arcoiris-195636.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg",
+    "descripcion": "Teclado mecánico con keycaps negros y base de aluminio cepillado.",
     "destacado": false,
     "etiqueta": "Oferta"
   },
@@ -90,7 +90,7 @@
     "calificacion": 4.5,
     "resenas": 115,
     "stock": 22,
-    "imagen": "https://picsum.photos/seed/prod6/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/m/o/monitor-xiaomi-lcd-ips-27-pulgadas-g27i-199453_2_.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg",
     "descripcion": "Monitor 4K ultrawide sin bordes, ideal para productividad y diseño.",
     "destacado": true,
     "etiqueta": null
@@ -106,7 +106,7 @@
     "calificacion": 4.0,
     "resenas": 78,
     "stock": 18,
-    "imagen": "https://picsum.photos/seed/prod7/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/t/a/tablet-samsung-tab-a11-wi-fi-128gb-gris-199639_4_.png?width=265&height=265&canvas=265,265&optimize=medium&bg-color=255,255,255&fit=bounds&format=jpeg",
     "descripcion": "Tablet metálica con teclado magnético para creativos en movimiento.",
     "destacado": false,
     "etiqueta": null
@@ -114,7 +114,7 @@
   {
     "id": 8,
     "nombre": "Mouse Precision Flow",
-    "marca": "ClickArt",
+    "marca": "GXTrust",
     "categoria": "accesorios",
     "precio": 51000,
     "precioAnterior": null,
@@ -122,7 +122,7 @@
     "calificacion": 4.5,
     "resenas": 143,
     "stock": 120,
-    "imagen": "https://picsum.photos/seed/prod8/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/m/o/mouse-gaming-trust-25036-negro-negro-195637_1_.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg",
     "descripcion": "Mouse ergonómico con acentos metálicos y sensor de alta precisión.",
     "destacado": true,
     "etiqueta": null
@@ -130,7 +130,7 @@
   {
     "id": 9,
     "nombre": "Kit Hogar Inteligente",
-    "marca": "DomoTech",
+    "marca": "Nexxt Solutions",
     "categoria": "hogar",
     "precio": 129000,
     "precioAnterior": null,
@@ -138,7 +138,7 @@
     "calificacion": 4.0,
     "resenas": 54,
     "stock": 45,
-    "imagen": "https://picsum.photos/seed/prod9/500/500",
+    "imagen": "https://cr.epaenlinea.com/media/catalog/product/1/0/100020770.jpeg?optimize=medium&bg-color=255,255,255&fit=bounds&height=300&width=300&canvas=300:300",
     "descripcion": "Set de sensores inteligentes que se integran de forma discreta al hogar.",
     "destacado": false,
     "etiqueta": null
@@ -154,7 +154,7 @@
     "calificacion": 4.5,
     "resenas": 61,
     "stock": 70,
-    "imagen": "https://picsum.photos/seed/prod10/500/500",
+    "imagen": "https://cr.epaenlinea.com/media/catalog/product/1/0/100009940.jpg_20250715202113739195.jpeg?optimize=medium&bg-color=255,255,255&fit=bounds&height=300&width=300&canvas=300:300",
     "descripcion": "Lámpara de cerámica con pantalla de lino y luz cálida envolvente.",
     "destacado": true,
     "etiqueta": null
@@ -162,7 +162,7 @@
   {
     "id": 11,
     "nombre": "Mochila Urbana Premium",
-    "marca": "Nómada",
+    "marca": "Everlast",
     "categoria": "moda",
     "precio": 45000,
     "precioAnterior": null,
@@ -170,7 +170,7 @@
     "calificacion": 4.0,
     "resenas": 39,
     "stock": 90,
-    "imagen": "https://picsum.photos/seed/prod11/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/m/o/mochila-everlast-evbp1b111-negro-184234.jpg?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700",
     "descripcion": "Mochila resistente al agua con compartimento acolchado para laptop.",
     "destacado": false,
     "etiqueta": null
@@ -186,7 +186,7 @@
     "calificacion": 4.5,
     "resenas": 156,
     "stock": 110,
-    "imagen": "https://picsum.photos/seed/prod12/500/500",
+    "imagen": "https://www.tiendamonge.com/media/catalog/product/a/u/audifonos-manos-libre-xiaomi-redmi-buds-6-pro-negro-196353_4_.png?optimize=medium&bg-color=255,255,255&fit=bounds&height=700&width=700&canvas=700:700&format=jpeg",
     "descripcion": "Audífonos inalámbricos con estuche de carga y sonido de alta fidelidad.",
     "destacado": true,
     "etiqueta": null
