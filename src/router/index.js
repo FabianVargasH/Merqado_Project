@@ -24,8 +24,8 @@ const routes = [
     name: "carrito",
     component: () => import("../views/CarritoView.vue"),
   },
-  // Fabián 
-  /*{
+  // Fabián
+  {
     path: "/login",
     name: "login",
     component: () => import("../views/LoginView.vue"),
@@ -53,7 +53,7 @@ const routes = [
     name: "admin-inventario",
     component: () => import("../views/AdminInventarioView.vue"),
     meta: { admin: true },
-  },*/
+  },
 ];
 
 export default createRouter({

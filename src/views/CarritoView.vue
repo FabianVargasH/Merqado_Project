@@ -1,10 +1,13 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useCarritoStore } from '../stores/carrito'
+import { usePedidosStore } from '../stores/pedidos'
 import { formatearColones } from '../utils/formato'
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
 const carrito = useCarritoStore()
+//store de pedidos para guardar el historial de compras
+const pedidos = usePedidosStore()
 
 // Provincias de Costa Rica para el <select> de envío.
 const provincias = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
@@ -67,6 +70,15 @@ function finalizar() {
 
   numeroOrden.value = 'MQ-' + Math.floor(10000 + Math.random() * 90000)
   totalPagado.value = carrito.total // guardamos el total ANTES de vaciar
+  // Registrar el pedido (queda en localStorage) ANTES de vaciar el carrito,
+  // para que aparezca en "Mis pedidos".
+  pedidos.registrar({
+    numero: numeroOrden.value,
+    fecha: new Date().toLocaleDateString('es-CR'),
+    items: [...carrito.items],
+    total: carrito.total,
+    estado: 'Procesando'
+  })
   confirmado.value = true
   carrito.vaciar()
   window.scrollTo({ top: 0 })

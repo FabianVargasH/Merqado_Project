@@ -1,0 +1,23 @@
+import { defineStore } from 'pinia'
+
+// Store de pedidos = historial de compras del cliente.
+//
+// nota: mientras no haya base de datos, los pedidos se guardan en el
+// localStorage. Cuando se conecte una base de datos real, solo cambia de dónde se leen y
+// escriben los pedidos y el resto de la app (checkout y "Mis pedidos") queda igual.
+export const usePedidosStore = defineStore('pedidos', {
+  state: () => ({
+    lista: JSON.parse(localStorage.getItem('pedidos') || '[]')
+  }),
+
+  actions: {
+    // Registra una compra. unshift = el pedido más reciente queda de primero.
+    registrar(pedido) {
+      this.lista.unshift(pedido)
+      this.guardar()
+    },
+    guardar() {
+      localStorage.setItem('pedidos', JSON.stringify(this.lista))
+    }
+  }
+})
