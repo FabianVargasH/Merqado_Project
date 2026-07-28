@@ -6,13 +6,10 @@ import { formatearColones } from '../utils/formato'
 // El carrito es el store global: esta vista solo lo lee y lo edita.
 const carrito = useCarritoStore()
 
-// Provincias para el <select> de envío.
+// Provincias de Costa Rica para el <select> de envío.
 const provincias = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
 
 // Estado del formulario de envío + pago. reactive() = un solo objeto reactivo.
-//reactivo para que al cambiar cualquier propiedad del objeto, se actualice la vista automáticamente.
-// No es computed porque necesitamos que sea mutable, no solo derivado de otros valores. Si fuera computed, sería solo lectura y no podríamos modificarlo.
-//cuando si hemos usado computed es porque queremos derivar un valor de otros valores reactivos, pero no necesitamos modificarlo directamente.
 const form = reactive({
   nombre: '',
   apellidos: '',
@@ -21,11 +18,9 @@ const form = reactive({
   distrito: '',
   codigoPostal: '',
   direccion: '',
-  metodoPago: 'tarjeta',
   tarjeta: '',
   expiracion: '',
-  cvv: '',
-  sinpe: ''
+  cvv: ''
 })
 
 const intento = ref(false) // true tras el primer clic en "Finalizar": ahí mostramos errores (en caso de haber)
@@ -45,14 +40,21 @@ const errores = computed(() => {
   if (!/^\d{5}$/.test(form.codigoPostal)) e.codigoPostal = 'Debe tener 5 dígitos'
   if (!form.direccion.trim()) e.direccion = 'Ingresá la dirección exacta'
 
-  // Los campos de pago dependen del método elegido
-  if (form.metodoPago === 'tarjeta') {
-    if (!/^\d{16}$/.test(form.tarjeta.replace(/\s/g, ''))) e.tarjeta = 'Número de 16 dígitos'
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(form.expiracion)) e.expiracion = 'Formato MM/AA'
-    if (!/^\d{3}$/.test(form.cvv)) e.cvv = '3 dígitos'
+  // Validación de la tarjeta
+  if (!/^\d{16}$/.test(form.tarjeta)) e.tarjeta = 'Número de 16 dígitos'
+  if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(form.expiracion)) {
+    e.expiracion = 'Formato MM/AA'
   } else {
-    if (!/^\d{8}$/.test(form.sinpe)) e.sinpe = 'Teléfono de 8 dígitos'
+    // Validar que la tarjeta no esté vencida: compara MM/AA con el mes/año actuales.
+    const [mes, anio] = form.expiracion.split('/').map(Number)
+    const hoy = new Date()
+    const anioActual = hoy.getFullYear() % 100 // año a 2 dígitos
+    const mesActual = hoy.getMonth() + 1
+    if (anio < anioActual || (anio === anioActual && mes <= mesActual)) {
+      e.expiracion = 'Tarjeta vencida'
+    }
   }
+  if (!/^\d{3}$/.test(form.cvv)) e.cvv = '3 dígitos'
   return e
 })
 
@@ -68,6 +70,13 @@ function finalizar() {
   confirmado.value = true
   carrito.vaciar()
   window.scrollTo({ top: 0 })
+}
+
+// Formatea el vencimiento como MM/AA: deja solo dígitos e inserta "/" tras el mes.
+function formatearVencimiento() {
+  let v = form.expiracion.replace(/\D/g, '').slice(0, 4)
+  if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2)
+  form.expiracion = v
 }
 </script>
 
@@ -241,43 +250,21 @@ function finalizar() {
             <!-- Método de pago -->
             <section class="card border mb-4">
               <div class="card-body">
-                <h2 class="h5 mb-3"><i class="bi bi-credit-card me-2"></i>Método de pago</h2>
-
-                <!-- Selección de método: cambia entre qué campos se validan en base al método seleccionado -->
-                <div class="d-flex gap-3 mb-3">
-                  <div class="form-check">
-                    <input
-                      id="pago-tarjeta"
-                      v-model="form.metodoPago"
-                      class="form-check-input"
-                      type="radio"
-                      value="tarjeta"
-                    />
-                    <label class="form-check-label" for="pago-tarjeta">Tarjeta</label>
-                  </div>
-                  <div class="form-check">
-                    <input
-                      id="pago-sinpe"
-                      v-model="form.metodoPago"
-                      class="form-check-input"
-                      type="radio"
-                      value="sinpe"
-                    />
-                    <label class="form-check-label" for="pago-sinpe">SINPE Móvil</label>
-                  </div>
-                </div>
+                <h2 class="h5 mb-3"><i class="bi bi-credit-card me-2"></i>Pago con tarjeta</h2>
 
                 <!-- Campos de tarjeta -->
-                <div v-if="form.metodoPago === 'tarjeta'" class="row g-3">
+                <div class="row g-3">
                   <div class="col-12">
                     <label class="form-label">Número de tarjeta</label>
                     <input
                       v-model="form.tarjeta"
                       type="text"
                       inputmode="numeric"
-                      placeholder="0000 0000 0000 0000"
+                      maxlength="16"
+                      placeholder="0000000000000000"
                       class="form-control"
                       :class="{ 'is-invalid': intento && errores.tarjeta }"
+                      @input="form.tarjeta = form.tarjeta.replace(/\D/g, '')"
                     />
                     <div class="invalid-feedback">{{ errores.tarjeta }}</div>
                   </div>
@@ -290,6 +277,7 @@ function finalizar() {
                       maxlength="5"
                       class="form-control"
                       :class="{ 'is-invalid': intento && errores.expiracion }"
+                      @input="formatearVencimiento"
                     />
                     <div class="invalid-feedback">{{ errores.expiracion }}</div>
                   </div>
@@ -305,23 +293,6 @@ function finalizar() {
                       :class="{ 'is-invalid': intento && errores.cvv }"
                     />
                     <div class="invalid-feedback">{{ errores.cvv }}</div>
-                  </div>
-                </div>
-
-                <!-- Campo de SINPE -->
-                <div v-else class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Número SINPE Móvil</label>
-                    <input
-                      v-model="form.sinpe"
-                      type="text"
-                      inputmode="numeric"
-                      maxlength="8"
-                      placeholder="88887777"
-                      class="form-control"
-                      :class="{ 'is-invalid': intento && errores.sinpe }"
-                    />
-                    <div class="invalid-feedback">{{ errores.sinpe }}</div>
                   </div>
                 </div>
               </div>
