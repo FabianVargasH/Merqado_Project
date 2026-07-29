@@ -1,8 +1,8 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { useCarritoStore } from '../stores/carrito'
-import { usePedidosStore } from '../stores/pedidos'
-import { formatearColones } from '../utils/formato'
+import { useCarritoStore } from '../../stores/carrito'
+import { usePedidosStore } from '../../stores/pedidos'
+import { formatearColones } from '../../utils/formato'
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
 const carrito = useCarritoStore()

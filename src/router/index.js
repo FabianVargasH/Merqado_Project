@@ -6,52 +6,52 @@ const routes = [
   {
     path: "/",
     name: "inicio",
-    component: () => import("../views/InicioView.vue"),
+    component: () => import("../views/client/InicioView.vue"),
   },
   // Fabián
   {
     path: "/catalogo",
     name: "catalogo",
-    component: () => import("../views/CatalogoView.vue"),
+    component: () => import("../views/client/CatalogoView.vue"),
   },
   {
     path: "/producto/:id",
     name: "producto",
-    component: () => import("../views/ProductoView.vue"),
+    component: () => import("../views/client/ProductoView.vue"),
   },
   {
     path: "/carrito",
     name: "carrito",
-    component: () => import("../views/CarritoView.vue"),
+    component: () => import("../views/client/CarritoView.vue"),
   },
   // Fabián
   {
     path: "/login",
     name: "login",
-    component: () => import("../views/LoginView.vue"),
+    component: () => import("../views/auth/LoginView.vue"),
   },
   {
     path: "/registro",
     name: "registro",
-    component: () => import("../views/RegistroView.vue"),
+    component: () => import("../views/auth/RegistroView.vue"),
   },
   {
     path: "/cuenta",
     name: "cuenta",
-    component: () => import("../views/CuentaView.vue"),
+    component: () => import("../views/client/CuentaView.vue"),
   },
   // Joaquín (Admin)
   // meta.admin: App.vue oculta la NavBar/Footer del cliente para darle al panel su propio layout
   {
     path: "/admin",
     name: "admin",
-    component: () => import("../views/AdminDashboardView.vue"),
+    component: () => import("../views/admin/AdminDashboardView.vue"),
     meta: { admin: true },
   },
   {
     path: "/admin/inventario",
     name: "admin-inventario",
-    component: () => import("../views/AdminInventarioView.vue"),
+    component: () => import("../views/admin/AdminInventarioView.vue"),
     meta: { admin: true },
   },
 ];

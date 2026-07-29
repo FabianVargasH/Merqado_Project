@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import ProductCard from '../components/ProductCard.vue'
-import categorias from '../data/categorias.json'
-import productos from '../data/productos.json'
-import { formatearColones } from '../utils/formato'
+import ProductCard from '../../components/ProductCard.vue'
+import categorias from '../../data/categorias.json'
+import productos from '../../data/productos.json'
+import { formatearColones } from '../../utils/formato'
 
 const route = useRoute()
 

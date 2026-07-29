@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import ProductCard from '../components/ProductCard.vue'
-import categorias from '../data/categorias.json'
-import productos from '../data/productos.json'
+import ProductCard from '../../components/ProductCard.vue'
+import categorias from '../../data/categorias.json'
+import productos from '../../data/productos.json'
 
 // Página principal solo muestra los productos marcados como destacados
 // usar computed nos permite que si los datos cambian, la lista se recalcule sola
@@ -31,7 +31,7 @@ const destacados = computed(() => productos.filter((p) => p.destacado).slice(0, 
             </div>
             <div class="col-lg-6">
                 <img
-                src="../assets/hero-img.png"
+                src="../../assets/hero-img.png"
                 class="img-fluid rounded-4 shadow"
                 alt="Productos destacados"
                 />
