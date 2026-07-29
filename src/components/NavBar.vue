@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useCarritoStore } from '../stores/carrito'
+import logo from '../assets/cuentaIcon.png'
 
 // Leemos el carrito global para mostrar el contador. storeToRefs mantiene la reactividad del getter (si no, perdería la reactividad al desestructurar).
 // desestructurar es cuando sacamos propiedades de un objeto y las guardamos en variables separadas, como { cantidadTotal } = carrito. Si no usamos storeToRefs, cantidadTotal se vuelve una copia estática y no se actualiza cuando cambia el carrito.
@@ -26,22 +27,20 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
         <li class="nav-item">
           <RouterLink class="nav-link" :class="{ activo: route.path === '/' }" to="/">Inicio</RouterLink>
         </li>
+        <template v-if="route.path === '/'">
+          <li class="nav-item">
+            <a class="nav-link" href="#nosotros">Nosotros</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#valores">Valores</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#equipo">Equipo</a>
+          </li>
+        </template>
         <li class="nav-item">
-          <RouterLink
-            class="nav-link"
-            :class="{ activo: route.path === '/catalogo' && !esOfertas() }"
-            to="/catalogo"
-          >
+          <RouterLink class="nav-link" :class="{ activo: route.path === '/catalogo' && !esOfertas() }" to="/catalogo">
             Catálogo
-          </RouterLink>
-        </li>
-        <li class="nav-item">
-          <RouterLink
-            class="nav-link"
-            :class="{ activo: esOfertas() }"
-            :to="{ name: 'catalogo', query: { descuento: 'true' } }"
-          >
-            Ofertas
           </RouterLink>
         </li>
         <li class="nav-item">
@@ -54,14 +53,14 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
       <div class="d-flex align-items-center gap-2">
         <RouterLink class="btn btn-light position-relative" to="/carrito" aria-label="Carrito">
           <i class="bi bi-cart"></i>
-          <span
-            v-if="cantidadTotal"
-            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-          >
+          <span v-if="cantidadTotal"
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
             {{ cantidadTotal }}
           </span>
         </RouterLink>
-        <RouterLink class="btn btn-primary d-none d-lg-inline-flex" to="/login">Ingresar</RouterLink>
+        <RouterLink class="btn btn-primary d-none d-lg-inline-flex" to="/login"><img :src="logo" alt="Logo"
+            class="logo" />
+        </RouterLink>
       </div>
     </div>
   </nav>
@@ -77,10 +76,8 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
       </RouterLink>
       <RouterLink class="nav-movil text-center text-decoration-none position-relative" to="/carrito">
         <i class="bi bi-cart d-block fs-5"></i><span class="small">Carrito</span>
-        <span
-          v-if="cantidadTotal"
-          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-        >
+        <span v-if="cantidadTotal"
+          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
           {{ cantidadTotal }}
         </span>
       </RouterLink>
@@ -103,6 +100,7 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
 .nav-movil {
   color: var(--bs-secondary-color);
 }
+
 .nav-movil.router-link-exact-active {
   color: var(--marca-primary);
 }

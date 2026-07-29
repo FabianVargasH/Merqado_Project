@@ -1,5 +1,3 @@
-/* Estilos propios de la marca sobreescriben variables de Bootstrap sin tocar sus archivos. */
-
 :root {
   --bs-primary: #4212de;
   --bs-primary-rgb: 66, 18, 222;
@@ -7,7 +5,10 @@
   --marca-primary-hover: #5b3df5;
 }
 
-/* Bootstrap no reconstruye .btn-primary desde --bs-primary porque no es un color de Bootstrap, así que lo hacemos manualmente */
+html {
+  scroll-behavior: smooth;
+}
+
 .btn-primary {
   --bs-btn-bg: var(--marca-primary);
   --bs-btn-border-color: var(--marca-primary);
@@ -46,7 +47,7 @@ body {
   }
 }
 
-/* Admin portal: Bootstrap implementation of the professor-approved Merqado visual language. */
+/* Admin portal */
 .admin-shell { min-height: 100vh; overflow-x: hidden; background: #f8f9fc; color: #191c1e; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 .admin-sidebar { width: 256px; position: fixed; inset: 0 auto 0 0; z-index: 10; display: flex; flex-direction: column; padding: 24px 0; background: #f2f3f6; border-right: 1px solid #e1e2e5; }
 .admin-brand { color: #4212de; font-size: 1.5rem; font-weight: 800; }
