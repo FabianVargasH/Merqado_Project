@@ -8,7 +8,7 @@ const routes = [
     name: "inicio",
     component: () => import("../views/client/InicioView.vue"),
   },
-  // Fabián
+
   {
     path: "/catalogo",
     name: "catalogo",
@@ -24,24 +24,25 @@ const routes = [
     name: "carrito",
     component: () => import("../views/client/CarritoView.vue"),
   },
-  // Fabián
+
   {
     path: "/login",
     name: "login",
     component: () => import("../views/auth/LoginView.vue"),
+    meta: { auth: true },
   },
   {
     path: "/registro",
     name: "registro",
     component: () => import("../views/auth/RegistroView.vue"),
+    meta: { auth: true },
   },
   {
     path: "/cuenta",
     name: "cuenta",
     component: () => import("../views/client/CuentaView.vue"),
   },
-  // Joaquín (Admin)
-  // meta.admin: App.vue oculta la NavBar/Footer del cliente para darle al panel su propio layout
+  
   {
     path: "/admin",
     name: "admin",
