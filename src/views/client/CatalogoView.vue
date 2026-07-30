@@ -3,10 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductCard from '../../components/ProductCard.vue'
 import categorias from '../../data/categorias.json'
-import productos from '../../data/productos.json'
+import { useProductosStore } from '../../stores/productos'
 import { formatearColones } from '../../utils/formato'
 
 const route = useRoute()
+// Productos desde el store (fuente única, refleja stock y ediciones del admin).
+const productos = useProductosStore().lista
 
 // Precio más alto del catálogo → tope del deslizador de precio.
 const precioTope = Math.max(...productos.map((p) => p.precio))

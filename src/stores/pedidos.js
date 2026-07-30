@@ -16,6 +16,19 @@ export const usePedidosStore = defineStore('pedidos', {
       this.lista.unshift(pedido)
       this.guardar()
     },
+    // El admin cambia el estado de un pedido (Procesando, En camino, Entregado, Cancelado).
+    cambiarEstado(numero, estado) {
+      const p = this.lista.find((x) => x.numero === numero)
+      if (p) {
+        p.estado = estado
+        this.guardar()
+      }
+    },
+    // Re-lee desde localStorage: sirve para reflejar cambios hechos en OTRA
+    // pestaña (ej. el admin cambia el estado y el cliente lo ve sin recargar).
+    sincronizar() {
+      this.lista = JSON.parse(localStorage.getItem('pedidos') || '[]')
+    },
     guardar() {
       localStorage.setItem('pedidos', JSON.stringify(this.lista))
     }

@@ -1,11 +1,20 @@
 <script setup>
 import { computed } from 'vue'
 import AdminLayout from '../../components/AdminLayout.vue'
-import productos from '../../data/productos.json'
 import { usePedidosStore } from '../../stores/pedidos'
+import { useProductosStore } from '../../stores/productos'
 import { formatearColones } from '../../utils/formato'
 
 const pedidos = usePedidosStore()
+const productos = useProductosStore().lista
+
+// Estados que el admin puede asignar + formateo de la fecha ISO del pedido.
+const estadosPedido = ['Procesando', 'En camino', 'Entregado', 'Cancelado']
+const fmtFecha = (valor) => {
+  const d = new Date(valor)
+  // Pedidos viejos guardaban la fecha ya formateada (no ISO); en ese caso la mostramos tal cual.
+  return isNaN(d.getTime()) ? valor : d.toLocaleDateString('es-CR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 const totalVentas = computed(() => pedidos.lista.reduce((total, pedido) => total + Number(pedido.total || 0), 0))
 const productosVendidos = computed(() => pedidos.lista.reduce((total, pedido) => total + (pedido.items || []).reduce((n, item) => n + Number(item.cantidad || 0), 0), 0))
 const ordenesRecientes = computed(() => pedidos.lista.slice(0, 5))
@@ -48,7 +57,7 @@ const promedio = computed(() => pedidos.lista.length ? totalVentas.value / pedid
           <div v-else class="table-responsive">
             <table class="table align-middle mb-0">
               <thead><tr><th>Orden</th><th>Fecha</th><th>Estado</th><th class="text-end">Monto</th></tr></thead>
-              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ pedido.fecha }}</td><td><span class="status-pill">{{ pedido.estado }}</span></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
+              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ fmtFecha(pedido.fecha) }}</td><td><select class="form-select form-select-sm" style="min-width: 130px" :value="pedido.estado" @change="pedidos.cambiarEstado(pedido.numero, $event.target.value)"><option v-for="e in estadosPedido" :key="e" :value="e">{{ e }}</option></select></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
             </table>
           </div>
         </article>

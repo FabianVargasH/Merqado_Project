@@ -1,10 +1,13 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import AdminLayout from '../../components/AdminLayout.vue'
-import productosIniciales from '../../data/productos.json'
+import { useProductosStore } from '../../stores/productos'
 import { formatearColones } from '../../utils/formato'
 
-const productos = ref(productosIniciales.map((producto) => ({ ...producto })))
+// Fuente única: el mismo store que usa el cliente (así el stock refleja las
+// compras y los cambios del inventario persisten en localStorage).
+const productosStore = useProductosStore()
+const productos = computed(() => productosStore.lista)
 const busqueda = ref('')
 const categoria = ref('')
 const modalAbierto = ref(false)
@@ -22,12 +25,15 @@ function abrirEditar(producto) { Object.assign(form, producto); indiceEditando.v
 function guardar() {
   enviado.value = true
   if (!form.nombre.trim() || !form.categoria || Number(form.precio) <= 0 || Number(form.stock) < 0) return
-  const producto = { ...form, id: editando.value ? productos.value[indiceEditando.value].id : Date.now(), precio: Number(form.precio), stock: Number(form.stock), precioAnterior: null, descuento: false, calificacion: 0, resenas: 0, destacado: false, etiqueta: null }
-  if (editando.value) productos.value.splice(indiceEditando.value, 1, { ...productos.value[indiceEditando.value], ...producto })
-  else productos.value.push(producto)
+  const cambios = { ...form, precio: Number(form.precio), stock: Number(form.stock) }
+  if (editando.value) {
+    productosStore.actualizar(productos.value[indiceEditando.value].id, cambios)
+  } else {
+    productosStore.agregar({ ...cambios, id: Date.now(), precioAnterior: null, descuento: false, calificacion: 0, resenas: 0, destacado: false, etiqueta: null })
+  }
   modalAbierto.value = false
 }
-function eliminar(id) { if (window.confirm('¿Eliminar este producto del inventario?')) productos.value = productos.value.filter((producto) => producto.id !== id) }
+function eliminar(id) { if (window.confirm('¿Eliminar este producto del inventario?')) productosStore.eliminar(id) }
 </script>
 
 <template>

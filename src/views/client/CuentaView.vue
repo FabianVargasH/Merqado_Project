@@ -22,6 +22,12 @@ function cambiarTab(tab) {
   tabActiva.value = tab
 }
 
+// Número del pedido cuyo detalle está expandido (null = ninguno).
+const pedidoAbierto = ref(null)
+function alternarDetalle(numero) {
+  pedidoAbierto.value = pedidoAbierto.value === numero ? null : numero
+}
+
 const inicial = computed(() => (usuario.value?.nombre?.[0] || '?').toUpperCase())
 
 const clienteDesde = computed(() => {
@@ -33,7 +39,9 @@ const clienteDesde = computed(() => {
 })
 
 function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleDateString('es-CR', { year: 'numeric', month: 'short', day: 'numeric' })
+  const d = new Date(fecha)
+  // Pedidos viejos guardaban la fecha ya formateada (no ISO); en ese caso la mostramos tal cual.
+  return isNaN(d.getTime()) ? fecha : d.toLocaleDateString('es-CR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function claseEstado(estado) {
@@ -198,7 +206,28 @@ function cerrarSesionUsuario() {
                   {{ pedido.estado }}
                 </span>
                 <p class="fw-semibold mb-0">{{ formatearColones(pedido.total) }}</p>
+                <button class="btn btn-sm btn-outline-primary" @click="alternarDetalle(pedido.numero)">
+                  {{ pedidoAbierto === pedido.numero ? 'Ocultar' : 'Ver detalle' }}
+                </button>
               </div>
+
+              <!-- Detalle del pedido: los productos comprados -->
+              <ul v-if="pedidoAbierto === pedido.numero" class="list-unstyled border-top mt-3 pt-3 mb-0">
+                <li
+                  v-for="item in pedido.items"
+                  :key="item.id"
+                  class="d-flex align-items-center gap-2 mb-2"
+                >
+                  <img
+                    :src="item.imagen"
+                    :alt="item.nombre"
+                    class="rounded"
+                    style="width: 40px; height: 40px; object-fit: cover"
+                  />
+                  <span class="flex-grow-1">{{ item.cantidad }} × {{ item.nombre }}</span>
+                  <span class="text-secondary">{{ formatearColones(item.precio * item.cantidad) }}</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

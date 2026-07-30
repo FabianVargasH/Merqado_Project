@@ -2,12 +2,14 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductCard from '../../components/ProductCard.vue'
-import productos from '../../data/productos.json'
 import { useCarritoStore } from '../../stores/carrito'
+import { useProductosStore } from '../../stores/productos'
 import { formatearColones } from '../../utils/formato'
 
 const route = useRoute()
 const carrito = useCarritoStore()
+// Productos desde el store (así el stock refleja las compras hechas).
+const productos = useProductosStore().lista
 
 // Producto según el id de la URL. computed lo que significa que si navego a otro product dentro del mismo componente, entonces se recalcula solo.
 const producto = computed(() => productos.find((p) => p.id === Number(route.params.id)))

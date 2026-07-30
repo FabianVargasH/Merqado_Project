@@ -2,12 +2,15 @@
 import { computed, reactive, ref } from 'vue'
 import { useCarritoStore } from '../../stores/carrito'
 import { usePedidosStore } from '../../stores/pedidos'
+import { useProductosStore } from '../../stores/productos'
 import { formatearColones } from '../../utils/formato'
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
 const carrito = useCarritoStore()
 //store de pedidos para guardar el historial de compras
 const pedidos = usePedidosStore()
+//store de productos para rebajar el stock al comprar
+const productos = useProductosStore()
 
 // Provincias de Costa Rica para el <select> de envío.
 const provincias = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
@@ -74,11 +77,15 @@ function finalizar() {
   // para que aparezca en "Mis pedidos".
   pedidos.registrar({
     numero: numeroOrden.value,
-    fecha: new Date().toLocaleDateString('es-CR'),
+    fecha: new Date().toISOString(), // formato ISO: re-parseable con new Date() al mostrar
     items: [...carrito.items],
     total: carrito.total,
     estado: 'Procesando'
   })
+
+  // Rebajar el stock de cada producto comprado (persistido en localStorage).
+  carrito.items.forEach((item) => productos.rebajarStock(item.id, item.cantidad))
+
   confirmado.value = true
   carrito.vaciar()
   window.scrollTo({ top: 0 })
