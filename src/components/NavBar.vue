@@ -4,9 +4,13 @@ import { useRoute } from 'vue-router'
 import { useCarritoStore } from '../stores/carrito'
 import logo from '../assets/cuentaIcon.png'
 
+// Leemos el carrito global para mostrar el contador. storeToRefs mantiene la reactividad del getter (si no, perdería la reactividad al desestructurar).
+// desestructurar es cuando sacamos propiedades de un objeto y las guardamos en variables separadas, como { cantidadTotal } = carrito. Si no usamos storeToRefs, cantidadTotal se vuelve una copia estática y no se actualiza cuando cambia el carrito.
 const carrito = useCarritoStore()
 const { cantidadTotal } = storeToRefs(carrito)
 
+// Ruta actual para calcular el resaltado. Lo hacemos a mano y no con router-link-active porque "Ofertas" y "Catálogo" comparten la misma ruta
+// (/catalogo) y solo se distinguen por el query ?descuento=true.
 const route = useRoute()
 const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 'true'
 </script>
@@ -85,11 +89,13 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
 </template>
 
 <style scoped>
+/* Resaltado de la opción activa en la barra superior (subrayado morado) */
 .nav-link.activo {
   color: var(--marca-primary);
   font-weight: 600;
   border-bottom: 2px solid var(--marca-primary);
 }
+/* Ítem de la barra inferior: gris, y morado cuando la ruta está activa */
 .nav-movil {
   color: var(--bs-secondary-color);
 }
