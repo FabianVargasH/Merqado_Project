@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useCarritoStore } from '../../stores/carrito'
 import { usePedidosStore } from '../../stores/pedidos'
 import { useProductosStore } from '../../stores/productos'
+import { obtenerUsuario } from '../../utils/auth'
 import { formatearColones } from '../../utils/formato'
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
@@ -78,6 +79,7 @@ function finalizar() {
   pedidos.registrar({
     numero: numeroOrden.value,
     fecha: new Date().toISOString(), // formato ISO: re-parseable con new Date() al mostrar
+    usuario: obtenerUsuario()?.correo || null, // dueño del pedido, para filtrar en "Mis pedidos"
     items: [...carrito.items],
     total: carrito.total,
     estado: 'Procesando'

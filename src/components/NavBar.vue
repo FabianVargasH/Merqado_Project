@@ -1,43 +1,130 @@
 <script setup>
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useCarritoStore } from '../stores/carrito'
 import logo from '../assets/cuentaIcon.png'
 
-// Leemos el carrito global para mostrar el contador. storeToRefs mantiene la reactividad del getter (si no, perdería la reactividad al desestructurar).
-// desestructurar es cuando sacamos propiedades de un objeto y las guardamos en variables separadas, como { cantidadTotal } = carrito. Si no usamos storeToRefs, cantidadTotal se vuelve una copia estática y no se actualiza cuando cambia el carrito.
+// Contador del carrito (reactivo).
 const carrito = useCarritoStore()
 const { cantidadTotal } = storeToRefs(carrito)
 
-// Ruta actual para calcular el resaltado. Lo hacemos a mano y no con router-link-active porque "Ofertas" y "Catálogo" comparten la misma ruta
-// (/catalogo) y solo se distinguen por el query ?descuento=true.
+// Ruta actual. "Ofertas" y "Catálogo" comparten /catalogo (se distinguen por el query).
 const route = useRoute()
 const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 'true'
+
+// ── Scroll-spy: qué sección de Inicio está a la vista ────────────────────
+const seccionActiva = ref(null)
+const orden = ['nosotros', 'valores', 'equipo']
+let ticking = false
+
+function calcularSeccion() {
+  if (route.path !== '/') return (seccionActiva.value = null)
+  // Cerca del tope siempre gana Inicio (no marcamos ninguna sección).
+  if (window.scrollY < 90) return (seccionActiva.value = null)
+  // La sección activa es la última cuyo tope ya cruzó la línea del 25% de la pantalla.
+  const linea = window.innerHeight * 0.25
+  let activa = null
+  for (const id of orden) {
+    const el = document.getElementById(id)
+    if (el && el.getBoundingClientRect().top <= linea) activa = id
+  }
+  seccionActiva.value = activa
+}
+function alScrollear() {
+  if (ticking) return
+  ticking = true
+  requestAnimationFrame(() => {
+    calcularSeccion()
+    ticking = false
+  })
+}
+watch(() => route.path, () => nextTick(calcularSeccion))
+onMounted(() => {
+  window.addEventListener('scroll', alScrollear, { passive: true })
+  calcularSeccion()
+})
+onBeforeUnmount(() => window.removeEventListener('scroll', alScrollear))
+
+// Al hacer clic en Inicio: subir al tope, así el subrayado vuelve a "Inicio".
+function irInicio() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ── Telón (JS): colapso 1:1 del ancho real + margen negativo que absorbe el
+//    gap del flex, para que el cierre no tenga salto al final ──────────────
+const CURVA = 'cubic-bezier(0.22, 1, 0.36, 1)'
+const GAP = '1.5rem'
+function onEnter(el, done) {
+  const w = el.scrollWidth
+  el.style.overflow = 'hidden'
+  el.style.whiteSpace = 'nowrap'
+  el.style.transition = 'none'
+  el.style.maxWidth = '0px'
+  el.style.opacity = '0'
+  el.style.transform = 'scaleX(0.4)'
+  el.style.marginLeft = `-${GAP}`
+  void el.offsetWidth // reflow
+  el.style.transition = `max-width 0.45s ${CURVA}, opacity 0.4s ease, transform 0.45s ${CURVA}, margin-left 0.45s ${CURVA}`
+  el.style.maxWidth = w + 'px'
+  el.style.opacity = '1'
+  el.style.transform = 'scaleX(1)'
+  el.style.marginLeft = '0px'
+  setTimeout(() => {
+    el.style.transition = el.style.maxWidth = el.style.overflow = el.style.whiteSpace = el.style.transform = el.style.marginLeft = ''
+    done()
+  }, 470)
+}
+function onLeave(el, done) {
+  const w = el.scrollWidth
+  el.style.overflow = 'hidden'
+  el.style.whiteSpace = 'nowrap'
+  el.style.transition = 'none'
+  el.style.maxWidth = w + 'px'
+  el.style.opacity = '1'
+  el.style.transform = 'scaleX(1)'
+  el.style.marginLeft = '0px'
+  void el.offsetWidth
+  el.style.transition = `max-width 0.45s ${CURVA}, opacity 0.35s ease, transform 0.45s ${CURVA}, margin-left 0.45s ${CURVA}`
+  el.style.maxWidth = '0px'
+  el.style.opacity = '0'
+  el.style.transform = 'scaleX(0.4)'
+  el.style.marginLeft = `-${GAP}`
+  setTimeout(done, 470)
+}
 </script>
 
 <template>
   <!--  Barra SUPERIOR  -->
   <nav class="navbar bg-white border-bottom sticky-top">
     <div class="container">
-      <RouterLink class="navbar-brand fw-bold text-primary fs-4" to="/">Merqado</RouterLink>
+      <RouterLink class="navbar-brand fw-bold text-primary fs-4 d-flex align-items-center gap-2" to="/">
+        <span
+          class="d-inline-flex align-items-center justify-content-center bg-primary text-white fw-bold rounded"
+          style="width: 32px; height: 32px; font-size: 0.8rem"
+        >
+          mq
+        </span>
+        Merqado
+      </RouterLink>
 
-      <!-- Enlaces solo en desktop, en celular se usa la barra inferior
-           La clase "activo" marca la opción de la página actual -->
-      <ul class="navbar-nav flex-row gap-4 d-none d-lg-flex">
+      <!-- Enlaces solo en desktop. Cada uno tiene su subrayado que crece/decrece. -->
+      <ul class="navbar-nav flex-row gap-4 d-none d-lg-flex align-items-center">
         <li class="nav-item">
-          <RouterLink class="nav-link" :class="{ activo: route.path === '/' }" to="/">Inicio</RouterLink>
+          <RouterLink class="nav-link" :class="{ activo: route.path === '/' && !seccionActiva }" to="/" @click="irInicio">
+            Inicio
+          </RouterLink>
         </li>
-        <template v-if="route.path === '/'">
-          <li class="nav-item">
-            <a class="nav-link" href="#nosotros">Nosotros</a>
+
+        <!-- Nosotros/Valores/Equipo: aparecen/desaparecen con efecto "telón" (JS). -->
+        <Transition :css="false" @enter="onEnter" @leave="onLeave">
+          <li v-if="route.path === '/'" class="nav-item extras">
+            <a class="nav-link" :class="{ activo: seccionActiva === 'nosotros' }" href="#nosotros">Nosotros</a>
+            <a class="nav-link" :class="{ activo: seccionActiva === 'valores' }" href="#valores">Valores</a>
+            <a class="nav-link" :class="{ activo: seccionActiva === 'equipo' }" href="#equipo">Equipo</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#valores">Valores</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#equipo">Equipo</a>
-          </li>
-        </template>
+        </Transition>
+
         <li class="nav-item">
           <RouterLink class="nav-link" :class="{ activo: route.path === '/catalogo' && !esOfertas() }" to="/catalogo">
             Catálogo
@@ -89,17 +176,45 @@ const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 
 </template>
 
 <style scoped>
-/* Resaltado de la opción activa en la barra superior (subrayado morado) */
+/* Subrayado por opción: crece desde el centro cuando está activa y se achica al
+   dejar de estarlo. Al pasar de una opción a otra, una se achica mientras la otra
+   crece → transición fluida, sin medir posiciones (nada de "bumerang" ni lag). */
+.nav-link {
+  position: relative;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  bottom: 0;
+  height: 2px;
+  background: var(--marca-primary);
+  border-radius: 2px;
+  transition: left 0.28s ease, right 0.28s ease;
+}
 .nav-link.activo {
   color: var(--marca-primary);
   font-weight: 600;
-  border-bottom: 2px solid var(--marca-primary);
 }
+.nav-link.activo::after {
+  left: 0;
+  right: 0;
+}
+
+/* Grupo Nosotros/Valores/Equipo como una sola unidad flexible. */
+.extras {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  white-space: nowrap;
+  transform-origin: center;
+}
+
 /* Ítem de la barra inferior: gris, y morado cuando la ruta está activa */
 .nav-movil {
   color: var(--bs-secondary-color);
 }
-
 .nav-movil.router-link-exact-active {
   color: var(--marca-primary);
 }
