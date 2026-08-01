@@ -10,6 +10,9 @@ const pedidosStore = usePedidosStore()
 
 const usuario = ref(obtenerUsuario())
 
+// Solo los pedidos de ESTE usuario (por correo), no todos los del localStorage.
+const misPedidos = computed(() => pedidosStore.lista.filter((p) => p.usuario === usuario.value?.correo))
+
 onMounted(() => {
   // Sin sesión simulada no hay datos de cuenta que mostrar entonces los mandamos a login
   if (!usuario.value) {
@@ -185,7 +188,7 @@ function cerrarSesionUsuario() {
         <div v-if="tabActiva === 'pedidos'">
           <h2 class="h5 mb-3">Mis pedidos</h2>
 
-          <div v-if="pedidosStore.lista.length === 0" class="card border-0 shadow-sm rounded-4 p-5 text-center">
+          <div v-if="misPedidos.length === 0" class="card border-0 shadow-sm rounded-4 p-5 text-center">
             <i class="bi bi-bag-x fs-1 text-secondary mb-3"></i>
             <p class="text-secondary mb-3">Todavía no tenés pedidos realizados.</p>
             <RouterLink to="/catalogo" class="btn btn-primary align-self-center">Ir al catálogo</RouterLink>
@@ -193,7 +196,7 @@ function cerrarSesionUsuario() {
 
           <div v-else class="d-flex flex-column gap-3">
             <div
-              v-for="pedido in pedidosStore.lista"
+              v-for="pedido in misPedidos"
               :key="pedido.numero"
               class="card border-0 shadow-sm rounded-4 p-3"
             >
