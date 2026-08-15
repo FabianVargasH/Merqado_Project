@@ -1,16 +1,53 @@
-//archivo temporal mientras se incorpora la base de datos
-const CLAVE = "merqado_usuario";
+import api from '../services/api'
 
-// Sesión simulada porque no hay backend real todavía, así que el "usuario"
-// se guarda en localStorage y sobrevive a recargas, igual que el carrito.
+const CLAVE = 'merqado_usuario'
+
 export function obtenerUsuario() {
-  return JSON.parse(localStorage.getItem(CLAVE) || "null");
+  return JSON.parse(localStorage.getItem(CLAVE) || 'null')
 }
 
 export function guardarUsuario(usuario) {
-  localStorage.setItem(CLAVE, JSON.stringify(usuario));
+  localStorage.setItem(CLAVE, JSON.stringify(usuario))
 }
 
 export function cerrarSesion() {
-  localStorage.removeItem(CLAVE);
+  localStorage.removeItem(CLAVE)
+}
+
+export async function iniciarSesion({ correo, password }) {
+  const { data } = await api.post('/usuarios/login', {
+    correo,
+    contrasenna: password,
+  })
+
+  const usuario = {
+    nombre: data.usuario.nombre,
+    correo: data.usuario.correo,
+    tipoUsuario: data.usuario.tipoUsuario,
+    token: data.token,
+    ingresoEn: new Date().toISOString(),
+  }
+
+  guardarUsuario(usuario)
+  return usuario
+}
+
+export async function registrarUsuario({ nombre, correo, password }) {
+  const { data } = await api.post('/usuarios/registro', {
+    nombre,
+    correo,
+    contrasenna: password,
+    tipoUsuario: 'cliente',
+  })
+
+  const usuario = {
+    nombre: data.usuario.nombre,
+    correo: data.usuario.correo,
+    tipoUsuario: data.usuario.tipoUsuario,
+    token: data.token,
+    ingresoEn: new Date().toISOString(),
+  }
+
+  guardarUsuario(usuario)
+  return usuario
 }

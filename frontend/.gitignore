@@ -1,3 +1,5 @@
+.env
+
 # Prerequisites
 node_modules/
 dist/
@@ -33,3 +35,4 @@ cypress/screenshots/
 # Nuxt specific (Only include if using Nuxt.js)
 .nuxt/
 .output/
+
