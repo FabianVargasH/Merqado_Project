@@ -11,16 +11,20 @@ const route = useRoute()
 const productos = useProductosStore().lista
 
 // Precio más alto del catálogo → tope del deslizador de precio.
-const precioTope = Math.max(...productos.map((p) => p.precio))
+const precioTope = computed(() => Math.max(0, ...productos.map((p) => p.precio)))
 
 // Estado de los filtros y la vista.
 const busqueda = ref('')
 const categoriasSeleccionadas = ref([])
 const soloOfertas = ref(false)
-const precioMax = ref(precioTope)
+const precioMax = ref(0)
 const orden = ref('destacados')
 const paginaActual = ref(1)
 const porPagina = 6
+
+watch(precioTope, (value) => {
+  if (precioMax.value === 0) precioMax.value = value
+}, { immediate: true })
 
 // esta funcion inicializa filtros desde la URL, por ejemplo, los enlaces del NavBar/Inicio traen ?categoria= o ?descuento=true, por lo que
 // se re-aplica si la query cambia en la misma vista
@@ -47,7 +51,7 @@ const filtrados = computed(() => {
     const coincideCat =
       !categoriasSeleccionadas.value.length || categoriasSeleccionadas.value.includes(p.categoria)
     const coincideOferta = !soloOfertas.value || p.descuento
-    const coincidePrecio = p.precio <= precioMax.value
+    const coincidePrecio = precioMax.value === 0 || p.precio <= precioMax.value
     return coincideTexto && coincideCat && coincideOferta && coincidePrecio
   })
 
@@ -69,7 +73,7 @@ function limpiar() {
   busqueda.value = ''
   categoriasSeleccionadas.value = []
   soloOfertas.value = false
-  precioMax.value = precioTope
+  precioMax.value = precioTope.value
   orden.value = 'destacados'
 }
 </script>

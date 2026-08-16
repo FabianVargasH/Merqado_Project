@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { apiRequest } from '../services/api'
 
 // Store de pedidos = historial de compras del cliente.
 //
@@ -7,30 +8,56 @@ import { defineStore } from 'pinia'
 // escriben los pedidos y el resto de la app (checkout y "Mis pedidos") queda igual.
 export const usePedidosStore = defineStore('pedidos', {
   state: () => ({
-    lista: JSON.parse(localStorage.getItem('pedidos') || '[]')
+    lista: [],
+    cargando: false,
+    error: ''
   }),
 
   actions: {
-    // Registra una compra. unshift = el pedido más reciente queda de primero.
-    registrar(pedido) {
-      this.lista.unshift(pedido)
-      this.guardar()
+    async registrar({ items, shipping }) {
+      const { order } = await apiRequest('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          items: items.map((item) => ({ productId: item.id, quantity: item.cantidad })),
+          shipping,
+        }),
+      })
+      this.lista.unshift(order)
+      return order
     },
-    // El admin cambia el estado de un pedido (Procesando, En camino, Entregado, Cancelado).
-    cambiarEstado(numero, estado) {
-      const p = this.lista.find((x) => x.numero === numero)
-      if (p) {
-        p.estado = estado
-        this.guardar()
+    async cargarMisPedidos() {
+      this.cargando = true
+      try {
+        const { orders } = await apiRequest('/orders/me')
+        this.lista.splice(0, this.lista.length, ...orders)
+        return orders
+      } finally {
+        this.cargando = false
       }
     },
-    // Re-lee desde localStorage: sirve para reflejar cambios hechos en OTRA
-    // pestaña (ej. el admin cambia el estado y el cliente lo ve sin recargar).
-    sincronizar() {
-      this.lista = JSON.parse(localStorage.getItem('pedidos') || '[]')
+    async cargarAdminPedidos() {
+      this.cargando = true
+      try {
+        const { orders } = await apiRequest('/orders/admin/all')
+        this.lista.splice(0, this.lista.length, ...orders)
+        return orders
+      } finally {
+        this.cargando = false
+      }
     },
-    guardar() {
-      localStorage.setItem('pedidos', JSON.stringify(this.lista))
+    async cambiarEstado(numero, estado) {
+      const p = this.lista.find((x) => x.numero === numero)
+      if (p) {
+        const { order } = await apiRequest(`/orders/admin/${p._id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ estado }),
+        })
+        Object.assign(p, order)
+        return order
+      }
+    },
+    sincronizar() {
+      return this.cargarMisPedidos()
     }
   }
 })

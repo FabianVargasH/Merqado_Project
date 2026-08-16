@@ -1,32 +1,29 @@
-const express = require('express');
-const cors = require('cors');
-const connectDB = require('./config/db');
-require('dotenv').config();
+const { createApp } = require('./app')
+const { connectDatabase, disconnectDatabase } = require('./config/database')
+const { env, assertDatabaseConfig } = require('./config/env')
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+async function start() {
+  assertDatabaseConfig()
+  await connectDatabase(env.mongoUri)
+  const server = createApp().listen(env.port, '0.0.0.0', () => {
+    console.log(`Merqado API listening on port ${env.port}`)
+  })
 
-app.use(express.json());
-app.use(cors());
+  const shutdown = async () => {
+    server.close(async () => {
+      await disconnectDatabase()
+      process.exit(0)
+    })
+  }
+  process.once('SIGINT', shutdown)
+  process.once('SIGTERM', shutdown)
+}
 
-app.get('/', (req, res) => {
-    res.status(200).json({
-        msj: 'API de cursos funcionando correctamente' 
-    });
-});
+if (require.main === module) {
+  start().catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}
 
-app.post('/api/test', (req, res) => {
-    res.json({
-        msj: 'Datos recibidos correctamente',
-        body: req.body
-    });
-});
-
-const usuariosRoutes = require('./routes/usuarios.route');
-app.use('/api/usuarios', usuariosRoutes);
-
-connectDB();
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
-});
+module.exports = { start }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import AdminLayout from '../../components/AdminLayout.vue'
 import { usePedidosStore } from '../../stores/pedidos'
 import { useProductosStore } from '../../stores/productos'
@@ -7,6 +7,10 @@ import { formatearColones } from '../../utils/formato'
 
 const pedidos = usePedidosStore()
 const productos = useProductosStore().lista
+
+onMounted(() => {
+  pedidos.cargarAdminPedidos().catch(() => {})
+})
 
 // Estados que el admin puede asignar + formateo de la fecha ISO del pedido.
 const estadosPedido = ['Procesando', 'En camino', 'Entregado', 'Cancelado']
@@ -57,7 +61,7 @@ const promedio = computed(() => pedidos.lista.length ? totalVentas.value / pedid
           <div v-else class="table-responsive">
             <table class="table align-middle mb-0">
               <thead><tr><th>Orden</th><th>Fecha</th><th>Estado</th><th class="text-end">Monto</th></tr></thead>
-              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ fmtFecha(pedido.fecha) }}</td><td><select class="form-select form-select-sm" style="min-width: 130px" :value="pedido.estado" @change="pedidos.cambiarEstado(pedido.numero, $event.target.value)"><option v-for="e in estadosPedido" :key="e" :value="e">{{ e }}</option></select></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
+              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ fmtFecha(pedido.fecha || pedido.createdAt) }}</td><td><select class="form-select form-select-sm" style="min-width: 130px" :value="pedido.estado" @change="pedidos.cambiarEstado(pedido.numero, $event.target.value)"><option v-for="e in estadosPedido" :key="e" :value="e">{{ e }}</option></select></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
             </table>
           </div>
         </article>
