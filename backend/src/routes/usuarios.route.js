@@ -82,7 +82,9 @@ router.post('/login', async (req, res) => {
                 id: usuario._id,
                 nombre: usuario.nombre,
                 correo: usuario.correo,
-                tipoUsuario: usuario.tipoUsuario
+                tipoUsuario: usuario.tipoUsuario,
+                telefono: usuario.telefono,
+                fechaNacimiento: usuario.fechaNacimiento
             },
             token: generarToken(usuario._id)
         });
@@ -99,6 +101,38 @@ router.get('/perfil', protect, async (req, res) => {
     res.status(200).json({
         usuario: req.usuario
     });
+});
+
+// PATCH /api/usuarios/perfil 
+router.patch('/perfil', protect, async (req, res) => {
+    try {
+        const { nombre, telefono, fechaNacimiento } = req.body;
+
+        const cambios = {};
+        if (nombre !== undefined) cambios.nombre = nombre;
+        if (telefono !== undefined) cambios.telefono = telefono;
+        if (fechaNacimiento !== undefined) cambios.fechaNacimiento = fechaNacimiento;
+
+        const usuario = await Usuario.findByIdAndUpdate(
+            req.usuario._id,
+            cambios,
+            { returnDocument: 'after', runValidators: true }
+        ).select('-contrasenna');
+
+        if (!usuario) {
+            return res.status(404).json({ msj: 'Usuario no encontrado' });
+        }
+
+        res.status(200).json({
+            msj: 'Datos actualizados correctamente',
+            usuario
+        });
+    } catch (error) {
+        res.status(400).json({
+            msj: 'No se pudo actualizar el perfil',
+            error: error.message
+        });
+    }
 });
 
 module.exports = router;

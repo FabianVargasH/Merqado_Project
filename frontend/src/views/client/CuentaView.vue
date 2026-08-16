@@ -2,9 +2,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePedidosStore } from '../../stores/pedidos'
-import { obtenerUsuario, cerrarSesion } from '../../utils/auth'
 import { formatearColones } from '../../utils/formato'
 import { addressesApi } from '../../services/addresses'
+import { obtenerUsuario, cerrarSesion, actualizarPerfil } from '../../utils/auth'
 
 const router = useRouter()
 const pedidosStore = usePedidosStore()
@@ -63,16 +63,35 @@ function claseEstado(estado) {
   return mapa[estado?.toLowerCase()] || 'bg-secondary-subtle text-secondary-emphasis'
 }
 
-// --- Datos personales (simulados localmente, no hay backend) ---
+// --- Datos personales ---
 const datosPersonales = reactive({
   nombre: usuario.value?.nombre ?? '',
   correo: usuario.value?.correo ?? '',
-  telefono: '',
-  fechaNacimiento: '',
+  telefono: usuario.value?.telefono ?? '',
+  fechaNacimiento: usuario.value?.fechaNacimiento
+    ? new Date(usuario.value.fechaNacimiento).toISOString().split('T')[0]
+    : '',
 })
 const editandoDatos = ref(false)
-function guardarDatos() {
-  editandoDatos.value = false
+const guardandoDatos = ref(false)
+const errorDatos = ref('')
+
+async function guardarDatos() {
+  guardandoDatos.value = true
+  errorDatos.value = ''
+  try {
+    const actualizado = await actualizarPerfil({
+      nombre: datosPersonales.nombre,
+      telefono: datosPersonales.telefono,
+      fechaNacimiento: datosPersonales.fechaNacimiento || null,
+    })
+    usuario.value = actualizado
+    editandoDatos.value = false
+  } catch (error) {
+    errorDatos.value = error.response?.data?.msj || 'No se pudieron guardar los cambios'
+  } finally {
+    guardandoDatos.value = false
+  }
 }
 
 // --- Direcciones ---
@@ -247,6 +266,9 @@ function cerrarSesionUsuario() {
             </button>
           </div>
           <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div v-if="errorDatos" class="alert alert-danger py-2 small mb-3">
+              {{ errorDatos }}
+            </div>
             <form class="row g-3" @submit.prevent="guardarDatos">
               <div class="col-12 col-md-6">
                 <label class="form-label">Nombre completo</label>
@@ -254,7 +276,7 @@ function cerrarSesionUsuario() {
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">Correo electrónico</label>
-                <input v-model.trim="datosPersonales.correo" type="email" class="form-control" :disabled="!editandoDatos" />
+                <input v-model.trim="datosPersonales.correo" type="email" class="form-control" disabled />
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">Teléfono</label>
@@ -271,8 +293,10 @@ function cerrarSesionUsuario() {
                 <input v-model="datosPersonales.fechaNacimiento" type="date" class="form-control" :disabled="!editandoDatos" />
               </div>
               <div v-if="editandoDatos" class="col-12 d-flex justify-content-end gap-2 mt-2">
-                <button type="button" class="btn btn-light" @click="editandoDatos = false">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                <button type="button" class="btn btn-light" @click="editandoDatos = false" :disabled="guardandoDatos">Cancelar</button>
+                <button type="submit" class="btn btn-primary" :disabled="guardandoDatos">
+                  {{ guardandoDatos ? 'Guardando...' : 'Guardar cambios' }}
+                </button>
               </div>
             </form>
           </div>

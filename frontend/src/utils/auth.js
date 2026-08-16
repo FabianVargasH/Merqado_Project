@@ -24,6 +24,8 @@ export async function iniciarSesion({ correo, password }) {
     nombre: data.usuario.nombre,
     correo: data.usuario.correo,
     tipoUsuario: data.usuario.tipoUsuario,
+    telefono: data.usuario.telefono ?? '',
+    fechaNacimiento: data.usuario.fechaNacimiento ?? null,
     token: data.token,
     ingresoEn: new Date().toISOString(),
   }
@@ -50,4 +52,24 @@ export async function registrarUsuario({ nombre, correo, password }) {
 
   guardarUsuario(usuario)
   return usuario
+}
+
+// actualiza los datos personales del usuario logueado
+export async function actualizarPerfil({ nombre, telefono, fechaNacimiento }) {
+  const { data } = await api.patch('/usuarios/perfil', {
+    nombre,
+    telefono,
+    fechaNacimiento,
+  })
+
+  const usuarioActual = obtenerUsuario()
+  const usuarioActualizado = {
+    ...usuarioActual,
+    nombre: data.usuario.nombre,
+    telefono: data.usuario.telefono,
+    fechaNacimiento: data.usuario.fechaNacimiento,
+  }
+
+  guardarUsuario(usuarioActualizado)
+  return usuarioActualizado
 }
