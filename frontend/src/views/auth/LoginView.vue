@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { guardarUsuario } from '../../utils/auth'
+import { iniciarSesion } from '../../utils/auth'
 import PanelAuthVisual from '../../components/PanelAuthVisual.vue'
 
 const router = useRouter()
@@ -18,6 +18,7 @@ const errores = reactive({
 
 const mostrarPassword = ref(false)
 const enviando = ref(false)
+const errorGeneral = ref('')
 
 const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -43,20 +44,22 @@ function validarPassword() {
   return !errores.password
 }
 
-function manejarEnvio() {
+async function manejarEnvio() {
   const correoValido = validarCorreo()
   const passwordValido = validarPassword()
   if (!correoValido || !passwordValido) return
 
   enviando.value = true
+  errorGeneral.value = ''
 
-  guardarUsuario({
-    nombre: form.correo.split('@')[0],
-    correo: form.correo,
-    ingresoEn: new Date().toISOString(),
-  })
-
-  router.push({ name: 'cuenta' })
+  try {
+    await iniciarSesion({ correo: form.correo, password: form.password })
+    router.push({ name: 'cuenta' })
+  } catch (error) {
+    errorGeneral.value = error.response?.data?.msj || 'No se pudo iniciar sesión'
+  } finally {
+    enviando.value = false
+  }
 }
 </script>
 
@@ -66,7 +69,6 @@ function manejarEnvio() {
       <template #headline>Compra fácil,<br />vive mejor.</template>
     </PanelAuthVisual>
 
-    <!-- Panel de formulario -->
     <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center py-5 px-3 px-sm-4 position-relative">
       <div class="w-100" style="max-width: 400px">
         <div class="text-center mb-4">
@@ -80,7 +82,6 @@ function manejarEnvio() {
           <p class="text-secondary">Ingresá tus datos para acceder a tu cuenta</p>
         </div>
 
-        <!-- Tabs de navegación entre Login y Registro -->
         <div class="d-flex p-1 bg-light rounded-3 mb-4">
           <RouterLink to="/login" class="tab-auth flex-fill text-center py-2 rounded-3 fw-semibold text-decoration-none tab-auth--activo">
             Iniciar sesión
@@ -90,16 +91,13 @@ function manejarEnvio() {
           </RouterLink>
         </div>
 
-        <!-- Botones sociales: solo decorativos, no hay backend real todavía -->
         <div class="row g-2 mb-3">
           <div class="col-6">
-            <!-- Agregado meramente por apegarse al wireframe inicial, posiblemente se quite con el backend -->
             <button type="button" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" disabled title="Próximamente disponible">
               <i class="bi bi-google"></i> Google 
             </button>
           </div>
           <div class="col-6">
-             <!-- Agregado meramente por apegarse al wireframe inicial, posiblemente se quite con el backend -->
             <button type="button" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" disabled title="Próximamente disponible">
               <i class="bi bi-apple"></i> Apple
             </button>
@@ -110,6 +108,10 @@ function manejarEnvio() {
           <hr class="flex-grow-1" />
           <span class="small text-secondary text-nowrap">o continuá con correo electrónico</span>
           <hr class="flex-grow-1" />
+        </div>
+
+        <div v-if="errorGeneral" class="alert alert-danger py-2 small mb-3">
+          {{ errorGeneral }}
         </div>
 
         <form novalidate @submit.prevent="manejarEnvio">

@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { guardarUsuario } from '../../utils/auth' //Momentaneo para pruebas del front mientras se integra el backend
+import { registrarUsuario } from '../../utils/auth'
 import PanelAuthVisual from '../../components/PanelAuthVisual.vue'
 
 const router = useRouter()
@@ -25,9 +25,9 @@ const errores = reactive({
 const mostrarPassword = ref(false)
 const mostrarConfirmar = ref(false)
 const enviando = ref(false)
+const errorGeneral = ref('')
 
 const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// Al menos 8 caracteres, una mayúscula, una minúscula y un número
 const regexPasswordFuerte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
 
 function validarNombre() {
@@ -54,7 +54,6 @@ function validarPassword() {
   } else {
     errores.password = ''
   }
-  // Si ya se había validado la confirmación, la revalidamos por si cambió la contraseña base
   if (form.confirmarPassword) validarConfirmarPassword()
   return !errores.password
 }
@@ -75,7 +74,7 @@ function validarTerminos() {
   return !errores.terminos
 }
 
-function manejarEnvio() {
+async function manejarEnvio() {
   const validaciones = [
     validarNombre(),
     validarCorreo(),
@@ -86,15 +85,20 @@ function manejarEnvio() {
   if (validaciones.includes(false)) return
 
   enviando.value = true
+  errorGeneral.value = ''
 
-  // No hay backend real: creamos un usuario momentáneo con los datos del registro
-  guardarUsuario({
-    nombre: form.nombre.trim(),
-    correo: form.correo,
-    ingresoEn: new Date().toISOString(),
-  })
-
-  router.push({ name: 'cuenta' })
+  try {
+    await registrarUsuario({
+      nombre: form.nombre.trim(),
+      correo: form.correo,
+      password: form.password,
+    })
+    router.push({ name: 'cuenta' })
+  } catch (error) {
+    errorGeneral.value = error.response?.data?.msj || 'No se pudo completar el registro'
+  } finally {
+    enviando.value = false
+  }
 }
 </script>
 
@@ -104,7 +108,6 @@ function manejarEnvio() {
       <template #headline>Sumate a la<br />comunidad Merqado.</template>
     </PanelAuthVisual>
 
-    <!-- Panel de formulario -->
     <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center py-5 px-3 px-sm-4 position-relative">
       <div class="w-100" style="max-width: 400px">
         <div class="text-center mb-4">
@@ -118,7 +121,6 @@ function manejarEnvio() {
           <p class="text-secondary">Completá tus datos para empezar a comprar</p>
         </div>
 
-        <!-- Tabs de navegación entre Login y Registro -->
         <div class="d-flex p-1 bg-light rounded-3 mb-4">
           <RouterLink to="/login" class="tab-auth flex-fill text-center py-2 rounded-3 fw-semibold text-decoration-none">
             Iniciar sesión
@@ -126,6 +128,10 @@ function manejarEnvio() {
           <RouterLink to="/registro" class="tab-auth flex-fill text-center py-2 rounded-3 fw-semibold text-decoration-none tab-auth--activo">
             Registrarse
           </RouterLink>
+        </div>
+
+        <div v-if="errorGeneral" class="alert alert-danger py-2 small mb-3">
+          {{ errorGeneral }}
         </div>
 
         <form novalidate @submit.prevent="manejarEnvio">
