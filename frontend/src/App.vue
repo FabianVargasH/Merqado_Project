@@ -21,11 +21,15 @@ const esAuth = computed(() => route.meta.auth === true)
 const pedidos = usePedidosStore()
 const productos = useProductosStore()
 function alCambiarStorage(e) {
-  if (e.key === 'pedidos') pedidos.sincronizar()
-  if (e.key === 'productos') productos.sincronizar()
+  if (e.key === 'pedidos') pedidos.sincronizar().catch(() => {})
+  if (e.key === 'productos') productos.sincronizar().catch(() => {})
 }
 onMounted(() => window.addEventListener('storage', alCambiarStorage))
 onUnmounted(() => window.removeEventListener('storage', alCambiarStorage))
+
+onMounted(() => {
+  productos.cargar().catch(() => {})
+})
 </script>
 
 <template>

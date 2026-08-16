@@ -2,7 +2,7 @@
 
 Proyecto del curso **Programación Avanzada** — Universidad Cenfotec.
 
-Tienda en línea simulada construida completamente en el front-end con Vue 3. Catálogo de productos, carrito de compras y checkout con validación, todo persistido en `localStorage`.
+Tienda en línea construida con Vue 3 y una API Express/MongoDB. El carrito permanece local mientras productos, inventario y pedidos se gestionan mediante el backend.
 
 ## Tech Stack
 
@@ -55,7 +55,7 @@ src/
 
 ## Notas
 
-- Sin backend — datos mock en JSON, persistencia en `localStorage`
+- Productos, inventario y pedidos se cargan desde la API configurada en `VITE_API_URL`
 - IVA de Costa Rica (13%) incluido en todos los cálculos
 - Envío gratis en todos los pedidos
-- Las vistas de login, registro, cuenta y admin son placeholders
+- Login y registro son responsabilidad de la integración del partner

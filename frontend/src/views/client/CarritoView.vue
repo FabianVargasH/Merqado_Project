@@ -3,7 +3,6 @@ import { computed, reactive, ref } from 'vue'
 import { useCarritoStore } from '../../stores/carrito'
 import { usePedidosStore } from '../../stores/pedidos'
 import { useProductosStore } from '../../stores/productos'
-import { obtenerUsuario } from '../../utils/auth'
 import { formatearColones } from '../../utils/formato'
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
@@ -34,6 +33,7 @@ const intento = ref(false) // true tras el primer clic en "Finalizar": ahí most
 const confirmado = ref(false)
 const numeroOrden = ref('')
 const totalPagado = ref(0)
+const errorCompra = ref('')
 
 // Validación centralizada: devuelve { campo: mensaje } solo de los campos inválidos
 // computed, por lo que al escribir se recalcula solo, sin listeners manuales
@@ -67,30 +67,34 @@ const errores = computed(() => {
 
 const formValido = computed(() => Object.keys(errores.value).length === 0)
 
-// Simula el pago: no hay base de datos, así que solo generamos una orden y luego la vaciamos
-function finalizar() {
+// Payment remains simulated; the API validates the order, stock, and canonical totals.
+async function finalizar() {
   intento.value = true
+  errorCompra.value = ''
   if (!formValido.value) return
 
-  numeroOrden.value = 'MQ-' + Math.floor(10000 + Math.random() * 90000)
-  totalPagado.value = carrito.total // guardamos el total ANTES de vaciar
-  // Registrar el pedido (queda en localStorage) ANTES de vaciar el carrito,
-  // para que aparezca en "Mis pedidos".
-  pedidos.registrar({
-    numero: numeroOrden.value,
-    fecha: new Date().toISOString(), // formato ISO: re-parseable con new Date() al mostrar
-    usuario: obtenerUsuario()?.correo || null, // dueño del pedido, para filtrar en "Mis pedidos"
-    items: [...carrito.items],
-    total: carrito.total,
-    estado: 'Procesando'
-  })
-
-  // Rebajar el stock de cada producto comprado (persistido en localStorage).
-  carrito.items.forEach((item) => productos.rebajarStock(item.id, item.cantidad))
-
-  confirmado.value = true
-  carrito.vaciar()
-  window.scrollTo({ top: 0 })
+  try {
+    const order = await pedidos.registrar({
+      items: [...carrito.items],
+      shipping: {
+        nombre: form.nombre,
+        apellidos: form.apellidos,
+        provincia: form.provincia,
+        canton: form.canton,
+        distrito: form.distrito,
+        codigoPostal: form.codigoPostal,
+        direccion: form.direccion,
+      },
+    })
+    numeroOrden.value = order.numero
+    totalPagado.value = order.total
+    await productos.cargar()
+    confirmado.value = true
+    carrito.vaciar()
+    window.scrollTo({ top: 0 })
+  } catch (error) {
+    errorCompra.value = error.message
+  }
 }
 
 // Formatea el vencimiento como MM/AA: deja solo dígitos e inserta "/" tras el mes.
@@ -354,6 +358,9 @@ function formatearVencimiento() {
               <!-- Aviso solo si intentó pagar con errores -->
               <p v-if="intento && !formValido" class="text-danger small text-center mt-2 mb-0">
                 Revisá los campos marcados antes de continuar.
+              </p>
+              <p v-if="errorCompra" class="text-danger small text-center mt-2 mb-0">
+                {{ errorCompra }}
               </p>
             </div>
           </section>
