@@ -12,7 +12,7 @@ const generarToken = (id) => {
 // POST /api/usuarios/registro
 router.post('/registro', async (req, res) => {
     try {
-        const { nombre, correo, contrasenna, tipoUsuario } = req.body;
+        const { nombre, correo, contrasenna } = req.body;
 
         if (!nombre || !correo || !contrasenna) {
             return res.status(400).json({
@@ -34,7 +34,7 @@ router.post('/registro', async (req, res) => {
             nombre,
             correo,
             contrasenna: contrasennaHash,
-            tipoUsuario: tipoUsuario === 'admin' ? 'admin' : 'cliente'
+            tipoUsuario: 'cliente'
         });
 
         res.status(201).json({

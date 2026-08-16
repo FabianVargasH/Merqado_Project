@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import productosBase from '../data/productos.json'
+import { apiRequest } from '../services/api'
 
 // Store de productos = fuente única del catálogo/inventario.
 //
@@ -8,41 +8,45 @@ import productosBase from '../data/productos.json'
 // (por compras) y las ediciones del inventario del admin persistan sin backend.
 export const useProductosStore = defineStore('productos', {
   state: () => ({
-    lista: JSON.parse(localStorage.getItem('productos')) || productosBase.map((p) => ({ ...p }))
+    lista: [],
+    cargando: false,
+    error: ''
   }),
 
   actions: {
-    // Rebaja el stock al comprar (nunca baja de 0).
-    rebajarStock(id, cantidad) {
-      const p = this.lista.find((x) => x.id === id)
-      if (p) {
-        p.stock = Math.max(0, p.stock - cantidad)
-        this.guardar()
+    async cargar(params = {}) {
+      this.cargando = true
+      this.error = ''
+      try {
+        const query = new URLSearchParams(params).toString()
+        const { products } = await apiRequest(`/products${query ? `?${query}` : ''}`)
+        this.lista.splice(0, this.lista.length, ...products)
+        return products
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.cargando = false
       }
     },
-    // CRUD del inventario admin (todos persisten en localStorage).
-    agregar(producto) {
-      this.lista.push(producto)
-      this.guardar()
+    async agregar(producto) {
+      const { product } = await apiRequest('/products', { method: 'POST', body: JSON.stringify(producto) })
+      this.lista.push(product)
+      return product
     },
-    actualizar(id, cambios) {
+    async actualizar(id, cambios) {
+      const { product } = await apiRequest(`/products/${id}`, { method: 'PATCH', body: JSON.stringify(cambios) })
       const i = this.lista.findIndex((p) => p.id === id)
-      if (i !== -1) {
-        this.lista[i] = { ...this.lista[i], ...cambios }
-        this.guardar()
-      }
+      if (i !== -1) this.lista[i] = product
+      return product
     },
-    eliminar(id) {
-      this.lista = this.lista.filter((p) => p.id !== id)
-      this.guardar()
+    async eliminar(id) {
+      await apiRequest(`/products/${id}`, { method: 'DELETE' })
+      const i = this.lista.findIndex((p) => p.id === id)
+      if (i !== -1) this.lista.splice(i, 1)
     },
-    // Re-lee desde localStorage (para reflejar cambios hechos en otra pestaña).
     sincronizar() {
-      const guardado = JSON.parse(localStorage.getItem('productos'))
-      if (guardado) this.lista = guardado
-    },
-    guardar() {
-      localStorage.setItem('productos', JSON.stringify(this.lista))
+      return this.cargar()
     }
   }
 })

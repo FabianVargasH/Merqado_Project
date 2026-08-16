@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { usePedidosStore } from '../../stores/pedidos'
 import { obtenerUsuario, cerrarSesion } from '../../utils/auth'
 import { formatearColones } from '../../utils/formato'
+import { addressesApi } from '../../services/addresses'
 
 const router = useRouter()
 const pedidosStore = usePedidosStore()
@@ -13,11 +14,16 @@ const usuario = ref(obtenerUsuario())
 // Solo los pedidos de ESTE usuario (por correo), no todos los del localStorage.
 const misPedidos = computed(() => pedidosStore.lista.filter((p) => p.usuario === usuario.value?.correo))
 
-onMounted(() => {
+onMounted(async () => {
   // Sin sesión simulada no hay datos de cuenta que mostrar entonces los mandamos a login
   if (!usuario.value) {
     router.replace({ name: 'login' })
+    return
   }
+  await Promise.allSettled([
+    pedidosStore.cargarMisPedidos(),
+    cargarDirecciones(),
+  ])
 })
 
 const tabActiva = ref('pedidos')
@@ -72,18 +78,12 @@ function guardarDatos() {
 // --- Direcciones ---
 const provinciasCR = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
 
-const direcciones = reactive([
-  {
-    id: 1,
-    etiqueta: 'Casa',
-    predeterminada: true,
-    provincia: 'San José',
-    canton: 'San Rafael',
-    distrito: 'San Rafael',
-    senas: '200m norte de la iglesia católica',
-    codigoPostal: '10501',
-  },
-])
+const direcciones = reactive([])
+
+async function cargarDirecciones() {
+  const { addresses } = await addressesApi.list()
+  direcciones.splice(0, direcciones.length, ...addresses)
+}
 
 const mostrarFormNueva = ref(false)
 const nuevaDireccion = reactive({
@@ -106,24 +106,27 @@ function validarDireccion() {
   return !Object.values(erroresDireccion).some(Boolean)
 }
 
-function agregarDireccion() {
+async function agregarDireccion() {
   if (!validarDireccion()) return
-  direcciones.push({
-    id: Date.now(),
-    predeterminada: direcciones.length === 0,
-    ...nuevaDireccion,
-  })
-  Object.assign(nuevaDireccion, { etiqueta: '', provincia: provinciasCR[0], canton: '', distrito: '', senas: '', codigoPostal: '' })
-  mostrarFormNueva.value = false
+  try {
+    const { address } = await addressesApi.create({ ...nuevaDireccion })
+    await cargarDirecciones()
+    Object.assign(nuevaDireccion, { etiqueta: '', provincia: provinciasCR[0], canton: '', distrito: '', senas: '', codigoPostal: '' })
+    mostrarFormNueva.value = false
+    return address
+  } catch (error) {
+    erroresDireccion.etiqueta = error.message
+  }
 }
 
-function marcarPredeterminada(id) {
-  direcciones.forEach((d) => (d.predeterminada = d.id === id))
+async function marcarPredeterminada(id) {
+  await addressesApi.update(id, { predeterminada: true })
+  await cargarDirecciones()
 }
 
-function eliminarDireccion(id) {
-  const idx = direcciones.findIndex((d) => d.id === id)
-  if (idx !== -1) direcciones.splice(idx, 1)
+async function eliminarDireccion(id) {
+  await addressesApi.remove(id)
+  await cargarDirecciones()
 }
 
 function cerrarSesionUsuario() {
@@ -203,7 +206,7 @@ function cerrarSesionUsuario() {
               <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                   <p class="fw-semibold mb-0">Pedido #{{ pedido.numero }}</p>
-                  <p class="text-secondary small mb-0">{{ formatearFecha(pedido.fecha) }}</p>
+                  <p class="text-secondary small mb-0">{{ formatearFecha(pedido.fecha || pedido.createdAt) }}</p>
                 </div>
                 <span class="badge rounded-pill px-3 py-2" :class="claseEstado(pedido.estado)">
                   {{ pedido.estado }}
@@ -353,7 +356,7 @@ function cerrarSesionUsuario() {
           </div>
 
           <div v-else class="row g-3">
-            <div v-for="dir in direcciones" :key="dir.id" class="col-12 col-md-6">
+            <div v-for="dir in direcciones" :key="dir._id" class="col-12 col-md-6">
               <div class="card border-0 shadow-sm rounded-4 p-3 h-100" :class="{ 'border border-primary': dir.predeterminada }">
                 <span v-if="dir.predeterminada" class="badge bg-primary-subtle text-primary-emphasis mb-2 align-self-start">
                   Predeterminada
@@ -365,11 +368,11 @@ function cerrarSesionUsuario() {
                   <button
                     v-if="!dir.predeterminada"
                     class="btn btn-sm btn-outline-primary"
-                    @click="marcarPredeterminada(dir.id)"
+                    @click="marcarPredeterminada(dir._id)"
                   >
                     Predeterminar
                   </button>
-                  <button class="btn btn-sm btn-outline-danger" @click="eliminarDireccion(dir.id)">Eliminar</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="eliminarDireccion(dir._id)">Eliminar</button>
                 </div>
               </div>
             </div>
