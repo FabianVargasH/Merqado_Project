@@ -21,6 +21,15 @@ const usuarioSchema = new mongoose.Schema({
         type: String,
         enum: ['cliente', 'admin'],
         default: 'cliente'
+    },
+    telefono: {
+        type: String,
+        default: '',
+        trim: true
+    },
+    fechaNacimiento: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
