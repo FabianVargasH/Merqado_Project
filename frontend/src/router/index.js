@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { getAccessToken } from "../services/api";
+import { getAccessToken, getTokenPayload } from "../services/api";
+import { obtenerUsuario } from "../utils/auth";
 
 // Rutas cargadas de forma perezosa (lazy): cada vista es su propio "chunk",
 // así el navegador NO descarga el catálogo o el checkout hasta que se visitan, esto con el fin de lograr una optimización básica del rendimiento
@@ -44,6 +45,12 @@ const routes = [
     component: () => import("../views/client/CuentaView.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/factura/:numero",
+    name: "factura",
+    component: () => import("../views/client/FacturaView.vue"),
+    meta: { requiresAuth: true },
+  },
   
   {
     path: "/admin",
@@ -57,6 +64,12 @@ const routes = [
     component: () => import("../views/admin/AdminInventarioView.vue"),
     meta: { admin: true, requiresAdmin: true },
   },
+  {
+    path: "/admin/categorias",
+    name: "admin-categorias",
+    component: () => import("../views/admin/AdminCategoriasView.vue"),
+    meta: { admin: true, requiresAdmin: true },
+  },
 ];
 
 const router = createRouter({
@@ -66,11 +79,20 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
+// Rol admin: primero el `role` del JWT (tokens de socios), si no el tipoUsuario
+// guardado en la sesión del usuario local.
+function esAdmin() {
+  if (getTokenPayload()?.role === 'admin') return true
+  return obtenerUsuario()?.tipoUsuario === 'admin'
+}
+
 router.beforeEach((to) => {
   const token = getAccessToken()
 
-  if (to.meta.requiresAdmin && !token) {
-    return { name: token ? 'inicio' : 'login' }
+  if (to.meta.requiresAdmin) {
+    if (!token) return { name: 'login' }
+    // Autenticado pero sin rol admin: no puede entrar al panel, se va a Inicio.
+    if (!esAdmin()) return { name: 'inicio' }
   }
   if (to.meta.requiresAuth && !token) return { name: 'login' }
   return true

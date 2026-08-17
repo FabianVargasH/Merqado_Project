@@ -1,5 +1,10 @@
 import api from '../services/api'
+import { useCarritoStore } from '../stores/carrito'
 
+// merqado_usuario guarda el token de sesión (la credencial JWT) y una copia de los
+// datos del perfil que devuelve la base al autenticar. El token debe vivir en el
+// cliente porque es lo que autentica cada petición contra la API; los datos del
+// perfil siempre nacen de la base (login/registro/perfil).
 const CLAVE = 'merqado_usuario'
 
 export function obtenerUsuario() {
@@ -12,6 +17,8 @@ export function guardarUsuario(usuario) {
 
 export function cerrarSesion() {
   localStorage.removeItem(CLAVE)
+  // El carrito guardado sigue en la base; solo limpiamos el estado en memoria.
+  useCarritoStore().limpiarLocal()
 }
 
 export async function iniciarSesion({ correo, password }) {
@@ -31,6 +38,8 @@ export async function iniciarSesion({ correo, password }) {
   }
 
   guardarUsuario(usuario)
+  // Combina el carrito de invitado (en memoria) con el guardado en la base.
+  useCarritoStore().sincronizarConSesion().catch(() => {})
   return usuario
 }
 
@@ -51,6 +60,8 @@ export async function registrarUsuario({ nombre, correo, password }) {
   }
 
   guardarUsuario(usuario)
+  // Sube el carrito de invitado (en memoria) a la base del nuevo usuario.
+  useCarritoStore().sincronizarConSesion().catch(() => {})
   return usuario
 }
 

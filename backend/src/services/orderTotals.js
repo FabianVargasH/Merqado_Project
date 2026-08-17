@@ -1,9 +1,11 @@
 const IVA = 0.13
 
 function calculateOrderTotals(items, shippingCost = 0) {
-  const subtotal = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0)
-  const iva = Math.round(subtotal * IVA)
-  return { subtotal, iva, envio: shippingCost, total: subtotal + iva + shippingCost }
+  
+  const montoConIva = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0)
+  const iva = Math.round(montoConIva * (IVA / (1 + IVA)))
+  const subtotal = montoConIva - iva
+  return { subtotal, iva, envio: shippingCost, total: montoConIva + shippingCost }
 }
 
 function validateOrderItems(items) {

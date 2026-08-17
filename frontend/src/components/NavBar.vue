@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { useCarritoStore } from '../stores/carrito'
+import { getAccessToken } from '../services/api'
 import logo from '../assets/cuentaIcon.png'
 
 // Contador del carrito (reactivo).
@@ -12,6 +13,10 @@ const { cantidadTotal } = storeToRefs(carrito)
 // Ruta actual. "Ofertas" y "Catálogo" comparten /catalogo (se distinguen por el query).
 const route = useRoute()
 const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 'true'
+
+
+const sesionActiva = ref(Boolean(getAccessToken()))
+watch(() => route.path, () => { sesionActiva.value = Boolean(getAccessToken()) })
 
 // ── Scroll-spy: qué sección de Inicio está a la vista ────────────────────
 const seccionActiva = ref(null)
@@ -145,8 +150,12 @@ function onLeave(el, done) {
             {{ cantidadTotal }}
           </span>
         </RouterLink>
-        <RouterLink class="btn btn-primary d-none d-lg-inline-flex" to="/login"><img :src="logo" alt="Logo"
-            class="logo" />
+        <RouterLink
+          class="btn btn-primary d-none d-lg-inline-flex"
+          :to="sesionActiva ? '/cuenta' : '/login'"
+          :aria-label="sesionActiva ? 'Mi cuenta' : 'Iniciar sesión'"
+        >
+          <img :src="logo" alt="Logo" class="logo" />
         </RouterLink>
       </div>
     </div>

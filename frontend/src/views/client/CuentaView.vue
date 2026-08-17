@@ -1,17 +1,19 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePedidosStore } from '../../stores/pedidos'
+import { useUbicacionesStore } from '../../stores/ubicaciones'
 import { formatearColones } from '../../utils/formato'
 import { addressesApi } from '../../services/addresses'
 import { obtenerUsuario, cerrarSesion, actualizarPerfil } from '../../utils/auth'
 
 const router = useRouter()
 const pedidosStore = usePedidosStore()
+const ubicaciones = useUbicacionesStore()
 
 const usuario = ref(obtenerUsuario())
 
-// Solo los pedidos de ESTE usuario (por correo), no todos los del localStorage.
+// Solo los pedidos de ESTE usuario (por correo) traídos de la base.
 const misPedidos = computed(() => pedidosStore.lista.filter((p) => p.usuario === usuario.value?.correo))
 
 onMounted(async () => {
@@ -23,6 +25,7 @@ onMounted(async () => {
   await Promise.allSettled([
     pedidosStore.cargarMisPedidos(),
     cargarDirecciones(),
+    ubicaciones.cargarProvincias(),
   ])
 })
 
@@ -95,7 +98,12 @@ async function guardarDatos() {
 }
 
 // --- Direcciones ---
-const provinciasCR = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
+// Provincias desde la API pública de CR (vía store). provincia/canton/distrito
+// del formulario guardan el ID para la cascada; el nombre se resuelve al guardar.
+const provincias = computed(() => ubicaciones.provincias)
+const cantonesDir = ref([])
+const distritosDir = ref([])
+const nombreUbicacion = (lista, id) => lista.find((item) => item.id === id)?.nombre || ''
 
 const direcciones = reactive([])
 
@@ -107,18 +115,33 @@ async function cargarDirecciones() {
 const mostrarFormNueva = ref(false)
 const nuevaDireccion = reactive({
   etiqueta: '',
-  provincia: provinciasCR[0],
+  provincia: '',
   canton: '',
   distrito: '',
   senas: '',
   codigoPostal: '',
 })
-const erroresDireccion = reactive({ etiqueta: '', canton: '', distrito: '', codigoPostal: '' })
+const erroresDireccion = reactive({ etiqueta: '', provincia: '', canton: '', distrito: '', codigoPostal: '' })
+
+// Cascada provincia → cantón → distrito con datos reales de la API.
+watch(() => nuevaDireccion.provincia, async (provincia) => {
+  nuevaDireccion.canton = ''
+  nuevaDireccion.distrito = ''
+  cantonesDir.value = []
+  distritosDir.value = []
+  if (provincia) cantonesDir.value = await ubicaciones.cantones(provincia).catch(() => [])
+})
+watch(() => nuevaDireccion.canton, async (canton) => {
+  nuevaDireccion.distrito = ''
+  distritosDir.value = []
+  if (canton) distritosDir.value = await ubicaciones.distritos(nuevaDireccion.provincia, canton).catch(() => [])
+})
 
 function validarDireccion() {
   erroresDireccion.etiqueta = nuevaDireccion.etiqueta.trim() ? '' : 'Ponele un nombre (ej. Casa, Oficina).'
-  erroresDireccion.canton = nuevaDireccion.canton.trim() ? '' : 'Ingresá el cantón.'
-  erroresDireccion.distrito = nuevaDireccion.distrito.trim() ? '' : 'Ingresá el distrito.'
+  erroresDireccion.provincia = nuevaDireccion.provincia ? '' : 'Seleccioná la provincia.'
+  erroresDireccion.canton = nuevaDireccion.canton ? '' : 'Seleccioná el cantón.'
+  erroresDireccion.distrito = nuevaDireccion.distrito ? '' : 'Seleccioná el distrito.'
   erroresDireccion.codigoPostal = /^\d{5}$/.test(nuevaDireccion.codigoPostal)
     ? ''
     : 'El código postal debe tener 5 dígitos.'
@@ -128,9 +151,17 @@ function validarDireccion() {
 async function agregarDireccion() {
   if (!validarDireccion()) return
   try {
-    const { address } = await addressesApi.create({ ...nuevaDireccion })
+    // Se guardan los nombres legibles de la ubicación, no los IDs.
+    const { address } = await addressesApi.create({
+      etiqueta: nuevaDireccion.etiqueta,
+      provincia: nombreUbicacion(provincias.value, nuevaDireccion.provincia),
+      canton: nombreUbicacion(cantonesDir.value, nuevaDireccion.canton),
+      distrito: nombreUbicacion(distritosDir.value, nuevaDireccion.distrito),
+      senas: nuevaDireccion.senas,
+      codigoPostal: nuevaDireccion.codigoPostal,
+    })
     await cargarDirecciones()
-    Object.assign(nuevaDireccion, { etiqueta: '', provincia: provinciasCR[0], canton: '', distrito: '', senas: '', codigoPostal: '' })
+    Object.assign(nuevaDireccion, { etiqueta: '', provincia: '', canton: '', distrito: '', senas: '', codigoPostal: '' })
     mostrarFormNueva.value = false
     return address
   } catch (error) {
@@ -231,9 +262,14 @@ function cerrarSesionUsuario() {
                   {{ pedido.estado }}
                 </span>
                 <p class="fw-semibold mb-0">{{ formatearColones(pedido.total) }}</p>
-                <button class="btn btn-sm btn-outline-primary" @click="alternarDetalle(pedido.numero)">
-                  {{ pedidoAbierto === pedido.numero ? 'Ocultar' : 'Ver detalle' }}
-                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm btn-outline-primary" @click="alternarDetalle(pedido.numero)">
+                    {{ pedidoAbierto === pedido.numero ? 'Ocultar' : 'Ver detalle' }}
+                  </button>
+                  <RouterLink class="btn btn-sm btn-outline-secondary" :to="{ name: 'factura', params: { numero: pedido.numero } }">
+                    <i class="bi bi-receipt me-1"></i>Factura
+                  </RouterLink>
+                </div>
               </div>
 
               <!-- Detalle del pedido: los productos comprados -->
@@ -327,28 +363,40 @@ function cerrarSesionUsuario() {
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">Provincia</label>
-                <select v-model="nuevaDireccion.provincia" class="form-select">
-                  <option v-for="p in provinciasCR" :key="p" :value="p">{{ p }}</option>
+                <select
+                  v-model="nuevaDireccion.provincia"
+                  class="form-select"
+                  :class="{ 'is-invalid': erroresDireccion.provincia }"
+                >
+                  <option value="">Seleccionar…</option>
+                  <option v-for="p in provincias" :key="p.id" :value="p.id">{{ p.nombre }}</option>
                 </select>
+                <div class="invalid-feedback">{{ erroresDireccion.provincia }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">Cantón</label>
-                <input
-                  v-model.trim="nuevaDireccion.canton"
-                  type="text"
-                  class="form-control"
+                <select
+                  v-model="nuevaDireccion.canton"
+                  class="form-select"
+                  :disabled="!nuevaDireccion.provincia"
                   :class="{ 'is-invalid': erroresDireccion.canton }"
-                />
+                >
+                  <option value="">{{ nuevaDireccion.provincia ? 'Seleccionar…' : 'Elegí provincia' }}</option>
+                  <option v-for="c in cantonesDir" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                </select>
                 <div class="invalid-feedback">{{ erroresDireccion.canton }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">Distrito</label>
-                <input
-                  v-model.trim="nuevaDireccion.distrito"
-                  type="text"
-                  class="form-control"
+                <select
+                  v-model="nuevaDireccion.distrito"
+                  class="form-select"
+                  :disabled="!nuevaDireccion.canton"
                   :class="{ 'is-invalid': erroresDireccion.distrito }"
-                />
+                >
+                  <option value="">{{ nuevaDireccion.canton ? 'Seleccionar…' : 'Elegí cantón' }}</option>
+                  <option v-for="d in distritosDir" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+                </select>
                 <div class="invalid-feedback">{{ erroresDireccion.distrito }}</div>
               </div>
               <div class="col-12 col-md-6">

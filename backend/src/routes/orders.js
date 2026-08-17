@@ -4,6 +4,7 @@ const Product = require('../models/Product')
 const Order = require('../models/Order')
 const { authenticate, optionalAuthenticate, requireAdmin } = require('../middleware/auth')
 const { calculateOrderTotals, validateOrderItems } = require('../services/orderTotals')
+const { processPayment } = require('../services/paymentGateway')
 
 const router = express.Router()
 const ORDER_STATES = ['Procesando', 'En camino', 'Entregado', 'Cancelado']
@@ -42,6 +43,10 @@ async function createOrder(req, res) {
     return { productId: product.id, nombre: product.nombre, precio: product.precio, imagen: product.imagen, cantidad: item.quantity }
   })
   const totals = calculateOrderTotals(lines)
+
+  // Se procesa el pago simulado (genera el comprobante) antes de abrir la
+  // transacción de stock + creación de la orden. El resultado se guarda en la orden.
+  const payment = await processPayment({ montoCRC: totals.total })
   const session = await mongoose.startSession()
   let order
   try {
@@ -59,14 +64,19 @@ async function createOrder(req, res) {
         }
       }
 
+      const userId = getUserId(req.user)
       const [created] = await Order.create([{
         numero: `MQ-${Math.floor(10000 + Math.random() * 90000)}`,
         fecha: new Date(),
-        userId: getUserId(req.user),
+        userId,
         usuario: req.user?.email || null,
+        // Solo se referencia si el id es un ObjectId real (usuario local); los
+        // tokens externos o invitados quedan en null.
+        usuarioRef: mongoose.isValidObjectId(userId) ? userId : null,
         items: lines,
         shipping: normalizedShipping,
         ...totals,
+        payment,
         estado: 'Procesando',
       }], { session })
       order = created
@@ -86,8 +96,29 @@ router.get('/me', authenticate, async (req, res) => {
   res.json({ orders })
 })
 
+
+router.get('/by-number/:numero', authenticate, async (req, res) => {
+  const order = await Order.findOne({ numero: req.params.numero }).lean()
+  if (!order) return res.status(404).json({ error: 'Order not found' })
+  const userId = getUserId(req.user)
+  const esAdmin = req.user.role === 'admin'
+  // Sin id de usuario (token externo incompleto) y sin ser admin no se autoriza:
+  // de lo contrario null === null dejaría ver órdenes de invitado (userId: null).
+  if (!esAdmin && !userId) return res.status(401).json({ error: 'Invalid user' })
+  if (!esAdmin && order.userId !== userId) {
+    return res.status(403).json({ error: 'Not allowed to view this order' })
+  }
+  return res.json({ order })
+})
+
 router.get('/admin/all', authenticate, requireAdmin, async (req, res) => {
-  const orders = await Order.find().sort({ createdAt: -1 }).limit(100).lean()
+  // .populate() une cada orden con su usuario (relación ORM) para traer nombre y
+  // correo desde la colección de usuarios sin guardarlos duplicados en la orden.
+  const orders = await Order.find()
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate('usuarioRef', 'nombre correo tipoUsuario')
+    .lean()
   res.json({ orders })
 })
 

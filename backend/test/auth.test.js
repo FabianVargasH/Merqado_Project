@@ -20,3 +20,9 @@ test('rejects non-admin users at the authorization boundary', () => {
   assert.equal(responseStatus, 403)
   assert.deepEqual(responseBody, { error: 'Administrator role required' })
 })
+
+test('lets admin users through the authorization boundary', () => {
+  let called = false
+  requireAdmin({ user: { role: 'admin' } }, {}, () => { called = true })
+  assert.equal(called, true)
+})

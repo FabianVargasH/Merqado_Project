@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia'
 import { apiRequest } from '../services/api'
 
-// Store de pedidos = historial de compras del cliente.
-//
-// nota: mientras no haya base de datos, los pedidos se guardan en el
-// localStorage. Cuando se conecte una base de datos real, solo cambia de dónde se leen y
-// escriben los pedidos y el resto de la app (checkout y "Mis pedidos") queda igual.
+
 export const usePedidosStore = defineStore('pedidos', {
   state: () => ({
     lista: [],
@@ -23,6 +19,13 @@ export const usePedidosStore = defineStore('pedidos', {
         }),
       })
       this.lista.unshift(order)
+      return order
+    },
+    // Una orden por su número (para la factura). Reusa la lista si ya está cargada.
+    async cargarPorNumero(numero) {
+      const existente = this.lista.find((p) => p.numero === numero)
+      if (existente) return existente
+      const { order } = await apiRequest(`/orders/by-number/${numero}`)
       return order
     },
     async cargarMisPedidos() {
@@ -55,9 +58,6 @@ export const usePedidosStore = defineStore('pedidos', {
         Object.assign(p, order)
         return order
       }
-    },
-    sincronizar() {
-      return this.cargarMisPedidos()
     }
   }
 })

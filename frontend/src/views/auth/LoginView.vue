@@ -1,10 +1,20 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { iniciarSesion } from '../../utils/auth'
+import { iniciarSesion, cerrarSesion } from '../../utils/auth'
 import PanelAuthVisual from '../../components/PanelAuthVisual.vue'
 
 const router = useRouter()
+
+// Tipo de acceso elegido en la pantalla: 'cliente' (tienda) o 'admin' (panel de
+// personal). why: el backend autentica igual y el rol real vive en la base; este
+// modo solo diferencia la experiencia y valida que la cuenta tenga el rol esperado.
+const modo = ref('cliente')
+const esModoAdmin = computed(() => modo.value === 'admin')
+function cambiarModo(nuevo) {
+  modo.value = nuevo
+  errorGeneral.value = ''
+}
 
 const form = reactive({
   correo: '',
@@ -53,8 +63,21 @@ async function manejarEnvio() {
   errorGeneral.value = ''
 
   try {
-    await iniciarSesion({ correo: form.correo, password: form.password })
-    router.push({ name: 'cuenta' })
+    const usuario = await iniciarSesion({ correo: form.correo, password: form.password })
+    const esAdmin = usuario.tipoUsuario === 'admin'
+    if (esModoAdmin.value) {
+      // En modo administrador la cuenta debe tener el rol; si no, se revierte la
+      // sesión y se avisa, para que el acceso diferenciado tenga efecto real.
+      if (!esAdmin) {
+        cerrarSesion()
+        errorGeneral.value = 'Esta cuenta no tiene acceso administrativo.'
+        return
+      }
+      router.push({ name: 'admin' })
+    } else {
+      // En modo cliente siempre va a su cuenta (un admin también puede comprar).
+      router.push({ name: 'cuenta' })
+    }
   } catch (error) {
     errorGeneral.value = error.response?.data?.msj || 'No se pudo iniciar sesión'
   } finally {
@@ -73,41 +96,28 @@ async function manejarEnvio() {
       <div class="w-100" style="max-width: 400px">
         <div class="text-center mb-4">
           <span
-            class="d-inline-flex align-items-center justify-content-center bg-primary text-white fw-bold rounded-3 mb-3"
+            class="d-inline-flex align-items-center justify-content-center text-white fw-bold rounded-3 mb-3"
+            :class="esModoAdmin ? 'bg-dark' : 'bg-primary'"
             style="width: 56px; height: 56px; font-size: 1.25rem"
           >
-            mq
+            <i v-if="esModoAdmin" class="bi bi-shield-lock"></i>
+            <template v-else>mq</template>
           </span>
-          <h1 class="h3 mb-1">Bienvenido de nuevo</h1>
-          <p class="text-secondary">Ingresá tus datos para acceder a tu cuenta</p>
+          <h1 class="h3 mb-1">{{ esModoAdmin ? 'Acceso administrativo' : 'Bienvenido de nuevo' }}</h1>
+          <p class="text-secondary">
+            {{ esModoAdmin ? 'Ingresá con tu cuenta de personal para gestionar la tienda' : 'Ingresá tus datos para acceder a tu cuenta' }}
+          </p>
         </div>
 
-        <div class="d-flex p-1 bg-light rounded-3 mb-4">
+        <!-- El personal no se auto-registra: en modo administrativo no se ofrece
+             la opción de "Registrarse". -->
+        <div v-if="!esModoAdmin" class="d-flex p-1 bg-light rounded-3 mb-4">
           <RouterLink to="/login" class="tab-auth flex-fill text-center py-2 rounded-3 fw-semibold text-decoration-none tab-auth--activo">
             Iniciar sesión
           </RouterLink>
           <RouterLink to="/registro" class="tab-auth flex-fill text-center py-2 rounded-3 fw-semibold text-decoration-none">
             Registrarse
           </RouterLink>
-        </div>
-
-        <div class="row g-2 mb-3">
-          <div class="col-6">
-            <button type="button" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" disabled title="Próximamente disponible">
-              <i class="bi bi-google"></i> Google 
-            </button>
-          </div>
-          <div class="col-6">
-            <button type="button" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2" disabled title="Próximamente disponible">
-              <i class="bi bi-apple"></i> Apple
-            </button>
-          </div>
-        </div>
-
-        <div class="d-flex align-items-center gap-3 mb-3">
-          <hr class="flex-grow-1" />
-          <span class="small text-secondary text-nowrap">o continuá con correo electrónico</span>
-          <hr class="flex-grow-1" />
         </div>
 
         <div v-if="errorGeneral" class="alert alert-danger py-2 small mb-3">
@@ -162,15 +172,29 @@ async function manejarEnvio() {
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-4" :disabled="enviando">
-            Iniciar sesión
+          <button
+            type="submit"
+            class="btn w-100 py-2 fw-semibold mt-4"
+            :class="esModoAdmin ? 'btn-dark' : 'btn-primary'"
+            :disabled="enviando"
+          >
+            <i v-if="esModoAdmin" class="bi bi-shield-lock me-1"></i>
+            {{ esModoAdmin ? 'Ingresar al panel' : 'Iniciar sesión' }}
           </button>
         </form>
 
-        <p class="text-center text-secondary mt-4 mb-0">
-          ¿No tenés cuenta?
-          <RouterLink to="/registro" class="text-primary fw-semibold text-decoration-none">Registrate gratis</RouterLink>
-        </p>
+        <div class="text-center mt-4">
+          <p v-if="!esModoAdmin" class="text-secondary mb-2">
+            ¿No tenés cuenta?
+            <RouterLink to="/registro" class="text-primary fw-semibold text-decoration-none">Registrate gratis</RouterLink>
+          </p>
+          <!-- Acceso diferenciado para personal de Merqado: botón discreto que activa
+               el modo administrador (el rol real se valida contra la base al ingresar). -->
+          <button type="button" class="btn-acceso-personal" @click="cambiarModo(esModoAdmin ? 'cliente' : 'admin')">
+            <i class="bi" :class="esModoAdmin ? 'bi-arrow-left' : 'bi-shield-lock'"></i>
+            {{ esModoAdmin ? 'Volver a acceso de cliente' : 'Personal de Merqado' }}
+          </button>
+        </div>
       </div>
 
       <i class="bi bi-bag decorativo-bolsa d-none d-lg-block"></i>
@@ -197,5 +221,25 @@ async function manejarEnvio() {
   color: var(--bs-primary);
   opacity: 0.12;
   pointer-events: none;
+}
+
+/* Acceso para personal: botón pequeño, con el fondo de la página y borde azul
+   para diferenciarse sin competir con el botón principal de inicio de sesión. */
+.btn-acceso-personal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--bs-primary);
+  color: var(--bs-primary);
+  border-radius: 0.6rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.btn-acceso-personal:hover {
+  background: var(--bs-primary);
+  color: #fff;
 }
 </style>

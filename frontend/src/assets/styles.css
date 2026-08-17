@@ -95,3 +95,17 @@ body {
   .inventory-stats .btn { width: 100%; }
   .admin-modal { padding: 20px; }
 }
+
+/* Impresión de la factura: se ocultan navegación, pie y controles para que solo
+   salga el documento. La NavBar (.navbar), el footer y cualquier .no-print. */
+@media print {
+  .navbar,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  .factura {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

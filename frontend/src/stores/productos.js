@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia'
 import { apiRequest } from '../services/api'
 
-// Store de productos = fuente única del catálogo/inventario.
-//
-// nota: mientras no haya base de datos, se siembra desde productos.json la
-// primera vez y luego se guarda en localStorage, para que los cambios de stock
-// (por compras) y las ediciones del inventario del admin persistan sin backend.
+// los productos viven en la base de datos y se consumen por /products
 export const useProductosStore = defineStore('productos', {
   state: () => ({
     lista: [],
@@ -44,9 +40,6 @@ export const useProductosStore = defineStore('productos', {
       await apiRequest(`/products/${id}`, { method: 'DELETE' })
       const i = this.lista.findIndex((p) => p.id === id)
       if (i !== -1) this.lista.splice(i, 1)
-    },
-    sincronizar() {
-      return this.cargar()
     }
   }
 })
