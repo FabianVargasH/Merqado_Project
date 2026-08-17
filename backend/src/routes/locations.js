@@ -3,8 +3,7 @@ const { getProvincias, getCantones, getDistritos } = require('../services/crLoca
 
 const router = express.Router()
 
-// Proxy público a la API de ubicaciones de Costa Rica. Si el tercero falla se
-// responde 502 (Bad Gateway) para que el frontend pueda degradar con elegancia.
+
 router.get('/provincias', async (req, res) => {
   try {
     res.json({ provincias: await getProvincias() })

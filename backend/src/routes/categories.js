@@ -5,8 +5,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth')
 
 const router = express.Router()
 
-// Normaliza un texto libre a slug: sin acentos, minúsculas y con guiones. Se usa
-// para derivar `id` cuando el admin crea una categoría escribiendo solo el nombre.
+
 function slugify(value) {
   return String(value || '')
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -15,9 +14,7 @@ function slugify(value) {
     .replace(/^-+|-+$/g, '')
 }
 
-// GET /api/categories — lista pública ordenada por nombre. Incluye cuántos
-// productos hay en cada categoría (relación Category.id ↔ Product.categoria) para
-// que el panel del admin muestre el conteo sin una segunda petición.
+
 router.get('/', async (req, res) => {
   const categories = await Category.find().sort({ nombre: 1 }).lean()
   const counts = await Product.aggregate([
@@ -42,8 +39,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
 })
 
 router.patch('/:id', authenticate, requireAdmin, async (req, res) => {
-  // El slug `id` es la clave que referencian los productos: no se reescribe en un
-  // update, solo el nombre/ícono visibles. Así ningún producto queda huérfano.
+
   const { id, ...cambios } = req.body
   const category = await Category.findOneAndUpdate(
     { id: String(req.params.id).toLowerCase() },
@@ -56,8 +52,7 @@ router.patch('/:id', authenticate, requireAdmin, async (req, res) => {
 
 router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   const id = String(req.params.id).toLowerCase()
-  // No permitimos borrar una categoría con productos: dejaría productos "huérfanos"
-  // que ningún filtro del catálogo mostraría. El admin debe reasignarlos primero.
+
   if (await Product.exists({ categoria: id })) {
     return res.status(409).json({ error: 'Cannot delete a category that still has products' })
   }

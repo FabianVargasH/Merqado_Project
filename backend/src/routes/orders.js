@@ -43,9 +43,7 @@ async function createOrder(req, res) {
     return { productId: product.id, nombre: product.nombre, precio: product.precio, imagen: product.imagen, cantidad: item.quantity }
   })
   const totals = calculateOrderTotals(lines)
-  // Se procesa el pago (consumo de la API externa de tipo de cambio) ANTES de abrir
-  // la transacción: una llamada de red dentro de la transacción la mantendría
-  // abierta innecesariamente. El comprobante resultante se guarda en la orden.
+
   const payment = await processPayment({ montoCRC: totals.total })
   const session = await mongoose.startSession()
   let order
@@ -96,8 +94,7 @@ router.get('/me', authenticate, async (req, res) => {
   res.json({ orders })
 })
 
-// Una orden por su número, para generar la factura del cliente. Solo el dueño de
-// la orden (o un admin) puede consultarla, para no exponer datos de envío ajenos.
+
 router.get('/by-number/:numero', authenticate, async (req, res) => {
   const order = await Order.findOne({ numero: req.params.numero }).lean()
   if (!order) return res.status(404).json({ error: 'Order not found' })

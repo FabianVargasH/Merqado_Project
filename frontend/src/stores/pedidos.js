@@ -1,10 +1,7 @@
 import { defineStore } from 'pinia'
 import { apiRequest } from '../services/api'
 
-// Store de pedidos = historial de compras del cliente.
-//
-// why: los pedidos viven en la base de datos y se consumen por la API REST
-// (/orders). Este store solo refleja el estado del servidor.
+
 export const usePedidosStore = defineStore('pedidos', {
   state: () => ({
     lista: [],

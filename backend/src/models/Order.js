@@ -8,7 +8,7 @@ const orderItemSchema = new mongoose.Schema({
   cantidad: { type: Number, required: true, min: 1 },
 }, { _id: false })
 
-// Comprobante del pago simulado. El monto queda en colones (moneda de la tienda).
+
 const paymentSchema = new mongoose.Schema({
   metodo: { type: String, default: 'tarjeta' },
   referencia: { type: String, required: true },

@@ -14,8 +14,7 @@ const { cantidadTotal } = storeToRefs(carrito)
 const route = useRoute()
 const esOfertas = () => route.path === '/catalogo' && route.query.descuento === 'true'
 
-// Si hay sesión activa, el botón de la derecha lleva a la cuenta; si no, al login.
-// Se recalcula al cambiar de ruta (login/logout siempre navegan), así se mantiene al día.
+
 const sesionActiva = ref(Boolean(getAccessToken()))
 watch(() => route.path, () => { sesionActiva.value = Boolean(getAccessToken()) })
 

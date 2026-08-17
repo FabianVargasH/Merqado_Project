@@ -11,9 +11,7 @@ const usuariosRouter = require('./routes/usuarios.route')
 const { healthHandler } = require('./routes/health')
 const { notFound, errorHandler } = require('./middleware/errors')
 
-// Orígenes permitidos por CORS. why función y no un string fijo: en desarrollo el
-// frontend puede correr en cualquier puerto de localhost (5173, 5174, …), así que
-// aceptamos cualquier localhost además del CLIENT_ORIGIN configurado (para prod).
+
 const allowedOrigins = env.clientOrigin.split(',').map((origin) => origin.trim()).filter(Boolean)
 function corsOrigin(origin, callback) {
   const esLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || '')

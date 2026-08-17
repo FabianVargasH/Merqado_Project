@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia'
 import { apiRequest } from '../services/api'
 
-// Store de ubicaciones de Costa Rica (provincias, cantones, distritos).
-//
-// why: los datos vienen de la API pública de CR a través del backend, para poblar
-// en cascada los <select> de envío con provincia → cantón → distrito reales.
 export const useUbicacionesStore = defineStore('ubicaciones', {
   state: () => ({
     provincias: [],

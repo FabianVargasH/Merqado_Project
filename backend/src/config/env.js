@@ -7,8 +7,6 @@ const env = {
   mongoUri: process.env.MONGODB_URI || process.env.MONGO_URI || '',
   jwtSecret: process.env.JWT_SECRET || '',
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-  // Credenciales del admin que crea el seed. Se pueden sobreescribir por entorno;
-  // los valores por defecto sirven para poder demostrar el panel sin configurar nada.
   adminEmail: process.env.ADMIN_EMAIL || 'admin@merqado.com',
   adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
   adminName: process.env.ADMIN_NAME || 'Administrador Merqado',

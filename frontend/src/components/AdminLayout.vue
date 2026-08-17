@@ -10,7 +10,7 @@ defineProps({
 
 const route = useRoute()
 
-// Datos del admin logueado (desde la sesión guardada), en vez de un nombre fijo.
+
 const usuario = obtenerUsuario()
 const nombreAdmin = computed(() => usuario?.nombre || 'Administrador')
 const inicialAdmin = computed(() => (nombreAdmin.value.trim()[0] || 'A').toUpperCase())
