@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import AdminLayout from '../../components/AdminLayout.vue'
 import { usePedidosStore } from '../../stores/pedidos'
 import { useProductosStore } from '../../stores/productos'
@@ -11,6 +11,31 @@ const productos = useProductosStore().lista
 onMounted(() => {
   pedidos.cargarAdminPedidos().catch(() => {})
 })
+
+// Cambio de estado en dos pasos: elegir en el <select> solo prepara el cambio;
+// se aplica al confirmar con el botón. why: evita cambiar el estado de una orden
+// por un clic accidental en el desplegable.
+const estadoPendiente = reactive({})
+const guardandoEstado = reactive({})
+function seleccionarEstado(numero, valor) {
+  estadoPendiente[numero] = valor
+}
+function estadoSeleccionado(pedido) {
+  return estadoPendiente[pedido.numero] ?? pedido.estado
+}
+function hayCambioEstado(pedido) {
+  return estadoPendiente[pedido.numero] != null && estadoPendiente[pedido.numero] !== pedido.estado
+}
+async function confirmarEstado(pedido) {
+  if (!hayCambioEstado(pedido)) return
+  guardandoEstado[pedido.numero] = true
+  try {
+    await pedidos.cambiarEstado(pedido.numero, estadoPendiente[pedido.numero])
+    delete estadoPendiente[pedido.numero]
+  } finally {
+    delete guardandoEstado[pedido.numero]
+  }
+}
 
 // Estados que el admin puede asignar + formateo de la fecha ISO del pedido.
 const estadosPedido = ['Procesando', 'En camino', 'Entregado', 'Cancelado']
@@ -24,7 +49,11 @@ const productosVendidos = computed(() => pedidos.lista.reduce((total, pedido) =>
 const ordenesRecientes = computed(() => pedidos.lista.slice(0, 5))
 const destacados = computed(() => {
   const cantidades = new Map()
-  pedidos.lista.forEach((pedido) => (pedido.items || []).forEach((item) => cantidades.set(item.id, (cantidades.get(item.id) || 0) + Number(item.cantidad || 0))))
+  // Los ítems de orden del backend identifican el producto con `productId`.
+  pedidos.lista.forEach((pedido) => (pedido.items || []).forEach((item) => {
+    const pid = item.productId ?? item.id
+    cantidades.set(pid, (cantidades.get(pid) || 0) + Number(item.cantidad || 0))
+  }))
   return productos.map((producto) => ({ ...producto, vendidos: cantidades.get(producto.id) || 0 })).sort((a, b) => b.vendidos - a.vendidos).slice(0, 4)
 })
 const promedio = computed(() => pedidos.lista.length ? totalVentas.value / pedidos.lista.length : 0)
@@ -61,7 +90,7 @@ const promedio = computed(() => pedidos.lista.length ? totalVentas.value / pedid
           <div v-else class="table-responsive">
             <table class="table align-middle mb-0">
               <thead><tr><th>Orden</th><th>Fecha</th><th>Estado</th><th class="text-end">Monto</th></tr></thead>
-              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ fmtFecha(pedido.fecha || pedido.createdAt) }}</td><td><select class="form-select form-select-sm" style="min-width: 130px" :value="pedido.estado" @change="pedidos.cambiarEstado(pedido.numero, $event.target.value)"><option v-for="e in estadosPedido" :key="e" :value="e">{{ e }}</option></select></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
+              <tbody><tr v-for="pedido in ordenesRecientes" :key="pedido.numero"><td class="fw-semibold">#{{ pedido.numero }}</td><td>{{ fmtFecha(pedido.fecha || pedido.createdAt) }}</td><td><div class="d-flex align-items-center gap-2"><select class="form-select form-select-sm" style="min-width: 130px" :value="estadoSeleccionado(pedido)" @change="seleccionarEstado(pedido.numero, $event.target.value)"><option v-for="e in estadosPedido" :key="e" :value="e">{{ e }}</option></select><button v-if="hayCambioEstado(pedido)" class="btn btn-sm btn-primary" :disabled="guardandoEstado[pedido.numero]" title="Confirmar cambio de estado" @click="confirmarEstado(pedido)"><i class="bi bi-check-lg"></i></button></div></td><td class="text-end fw-bold">{{ formatearColones(pedido.total) }}</td></tr></tbody>
             </table>
           </div>
         </article>

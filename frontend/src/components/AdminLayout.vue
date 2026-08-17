@@ -1,5 +1,7 @@
 <script setup>
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { obtenerUsuario } from '../utils/auth'
 
 defineProps({
   title: { type: String, default: 'Panel administrativo' },
@@ -7,9 +9,15 @@ defineProps({
 })
 
 const route = useRoute()
+
+// Datos del admin logueado (desde la sesión guardada), en vez de un nombre fijo.
+const usuario = obtenerUsuario()
+const nombreAdmin = computed(() => usuario?.nombre || 'Administrador')
+const inicialAdmin = computed(() => (nombreAdmin.value.trim()[0] || 'A').toUpperCase())
 const links = [
   { name: 'admin', label: 'Dashboard', icon: 'bi-grid-1x2-fill' },
-  { name: 'admin-inventario', label: 'Inventario', icon: 'bi-box-seam' }
+  { name: 'admin-inventario', label: 'Inventario', icon: 'bi-box-seam' },
+  { name: 'admin-categorias', label: 'Categorías', icon: 'bi-tags' }
 ]
 </script>
 
@@ -34,9 +42,9 @@ const links = [
       </nav>
       <div class="mt-auto px-3">
         <div class="admin-user-card mb-3">
-          <div class="admin-avatar">J</div>
+          <div class="admin-avatar">{{ inicialAdmin }}</div>
           <div>
-            <strong class="small d-block">Joaquín</strong>
+            <strong class="small d-block">{{ nombreAdmin }}</strong>
             <span class="small text-secondary">Administrador</span>
           </div>
         </div>

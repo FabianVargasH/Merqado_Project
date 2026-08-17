@@ -8,6 +8,15 @@ const orderItemSchema = new mongoose.Schema({
   cantidad: { type: Number, required: true, min: 1 },
 }, { _id: false })
 
+// Comprobante del pago simulado. El monto queda en colones (moneda de la tienda).
+const paymentSchema = new mongoose.Schema({
+  metodo: { type: String, default: 'tarjeta' },
+  referencia: { type: String, required: true },
+  montoCRC: { type: Number, required: true, min: 0 },
+  autorizado: { type: Boolean, default: true },
+  procesadoEn: { type: Date, default: Date.now },
+}, { _id: false })
+
 const shippingSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellidos: { type: String, required: true },
@@ -29,6 +38,7 @@ const orderSchema = new mongoose.Schema({
   iva: { type: Number, required: true, min: 0 },
   envio: { type: Number, required: true, min: 0, default: 0 },
   total: { type: Number, required: true, min: 0 },
+  payment: { type: paymentSchema, default: null },
   estado: { type: String, enum: ['Procesando', 'En camino', 'Entregado', 'Cancelado'], default: 'Procesando' },
 }, { timestamps: true })
 

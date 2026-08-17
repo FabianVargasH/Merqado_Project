@@ -1,9 +1,14 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useCarritoStore } from '../../stores/carrito'
 import { usePedidosStore } from '../../stores/pedidos'
 import { useProductosStore } from '../../stores/productos'
+import { useUbicacionesStore } from '../../stores/ubicaciones'
 import { formatearColones } from '../../utils/formato'
+import { getAccessToken } from '../../services/api'
+
+// La factura vive en una ruta protegida, así que solo se ofrece a clientes con sesión.
+const sesionActiva = computed(() => Boolean(getAccessToken()))
 
 // El carrito es el store global: esta vista solo lo lee y lo edita.
 const carrito = useCarritoStore()
@@ -12,10 +17,15 @@ const pedidos = usePedidosStore()
 //store de productos para rebajar el stock al comprar
 const productos = useProductosStore()
 
-// Provincias de Costa Rica para el <select> de envío.
-const provincias = ['San José', 'Alajuela', 'Cartago', 'Heredia', 'Guanacaste', 'Puntarenas', 'Limón']
+// Ubicaciones de Costa Rica (API pública vía backend) para el envío en cascada.
+const ubicaciones = useUbicacionesStore()
+const provincias = computed(() => ubicaciones.provincias)
+const cantones = ref([])
+const distritos = ref([])
 
 // Estado del formulario de envío + pago. reactive() = un solo objeto reactivo.
+// provincia/canton/distrito guardan el ID de la ubicación (para la cascada); el
+// nombre legible se resuelve al enviar la orden.
 const form = reactive({
   nombre: '',
   apellidos: '',
@@ -29,11 +39,34 @@ const form = reactive({
   cvv: ''
 })
 
+onMounted(() => {
+  ubicaciones.cargarProvincias().catch(() => {})
+})
+
+// Cascada: al cambiar provincia se cargan sus cantones y se limpia lo de abajo;
+// al cambiar cantón se cargan sus distritos. Así los <select> siempre son válidos.
+watch(() => form.provincia, async (provincia) => {
+  form.canton = ''
+  form.distrito = ''
+  cantones.value = []
+  distritos.value = []
+  if (provincia) cantones.value = await ubicaciones.cantones(provincia).catch(() => [])
+})
+watch(() => form.canton, async (canton) => {
+  form.distrito = ''
+  distritos.value = []
+  if (canton) distritos.value = await ubicaciones.distritos(form.provincia, canton).catch(() => [])
+})
+
 const intento = ref(false) // true tras el primer clic en "Finalizar": ahí mostramos errores (en caso de haber)
 const confirmado = ref(false)
 const numeroOrden = ref('')
 const totalPagado = ref(0)
+const pago = ref(null) // comprobante del pago simulado
 const errorCompra = ref('')
+
+// ID → nombre para armar el envío con nombres legibles (lo que se guarda en la orden).
+const nombreUbicacion = (lista, id) => lista.find((item) => item.id === id)?.nombre || ''
 
 // Validación centralizada: devuelve { campo: mensaje } solo de los campos inválidos
 // computed, por lo que al escribir se recalcula solo, sin listeners manuales
@@ -42,8 +75,8 @@ const errores = computed(() => {
   if (!form.nombre.trim()) e.nombre = 'Ingresá tu nombre'
   if (!form.apellidos.trim()) e.apellidos = 'Ingresá tus apellidos'
   if (!form.provincia) e.provincia = 'Seleccioná una provincia'
-  if (!form.canton.trim()) e.canton = 'Ingresá el cantón'
-  if (!form.distrito.trim()) e.distrito = 'Ingresá el distrito'
+  if (!form.canton) e.canton = 'Seleccioná el cantón'
+  if (!form.distrito) e.distrito = 'Seleccioná el distrito'
   if (!/^\d{5}$/.test(form.codigoPostal)) e.codigoPostal = 'Debe tener 5 dígitos'
   if (!form.direccion.trim()) e.direccion = 'Ingresá la dirección exacta'
 
@@ -79,15 +112,16 @@ async function finalizar() {
       shipping: {
         nombre: form.nombre,
         apellidos: form.apellidos,
-        provincia: form.provincia,
-        canton: form.canton,
-        distrito: form.distrito,
+        provincia: nombreUbicacion(provincias.value, form.provincia),
+        canton: nombreUbicacion(cantones.value, form.canton),
+        distrito: nombreUbicacion(distritos.value, form.distrito),
         codigoPostal: form.codigoPostal,
         direccion: form.direccion,
       },
     })
     numeroOrden.value = order.numero
     totalPagado.value = order.total
+    pago.value = order.payment || null
     await productos.cargar()
     confirmado.value = true
     carrito.vaciar()
@@ -115,7 +149,36 @@ function formatearVencimiento() {
         Tu orden <strong>#{{ numeroOrden }}</strong> por
         <strong>{{ formatearColones(totalPagado) }}</strong> fue procesada con éxito.
       </p>
-      <RouterLink to="/catalogo" class="btn btn-primary mt-2">Seguir comprando</RouterLink>
+
+      <!-- Comprobante del pago simulado. El monto en dólares proviene de la API
+           externa de tipo de cambio consumida por el backend al liquidar la orden. -->
+      <div v-if="pago" class="card border mx-auto mt-3 text-start" style="max-width: 380px">
+        <div class="card-body">
+          <h2 class="h6 fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Comprobante de pago</h2>
+          <div class="d-flex justify-content-between small mb-2">
+            <span class="text-secondary">Referencia</span><span class="fw-semibold">{{ pago.referencia }}</span>
+          </div>
+          <div class="d-flex justify-content-between small mb-2">
+            <span class="text-secondary">Estado</span>
+            <span class="badge bg-success-subtle text-success">{{ pago.autorizado ? 'Autorizado' : 'Rechazado' }}</span>
+          </div>
+          <div class="d-flex justify-content-between small mb-2">
+            <span class="text-secondary">Monto cobrado</span>
+            <span class="fw-semibold">{{ formatearColones(pago.montoCRC) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <RouterLink
+          v-if="sesionActiva"
+          :to="{ name: 'factura', params: { numero: numeroOrden } }"
+          class="btn btn-outline-primary"
+        >
+          <i class="bi bi-receipt me-1"></i>Ver factura
+        </RouterLink>
+        <RouterLink to="/catalogo" class="btn btn-primary">Seguir comprando</RouterLink>
+      </div>
     </div>
 
     <!-- ESTADO 2: CARRITO VACÍO -->
@@ -221,28 +284,34 @@ function formatearVencimiento() {
                       :class="{ 'is-invalid': intento && errores.provincia }"
                     >
                       <option value="">Seleccionar…</option>
-                      <option v-for="p in provincias" :key="p" :value="p">{{ p }}</option>
+                      <option v-for="p in provincias" :key="p.id" :value="p.id">{{ p.nombre }}</option>
                     </select>
                     <div class="invalid-feedback">{{ errores.provincia }}</div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Cantón</label>
-                    <input
+                    <select
                       v-model="form.canton"
-                      type="text"
-                      class="form-control"
+                      class="form-select"
+                      :disabled="!form.provincia"
                       :class="{ 'is-invalid': intento && errores.canton }"
-                    />
+                    >
+                      <option value="">{{ form.provincia ? 'Seleccionar…' : 'Elegí provincia' }}</option>
+                      <option v-for="c in cantones" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                    </select>
                     <div class="invalid-feedback">{{ errores.canton }}</div>
                   </div>
                   <div class="col-md-3">
                     <label class="form-label">Distrito</label>
-                    <input
+                    <select
                       v-model="form.distrito"
-                      type="text"
-                      class="form-control"
+                      class="form-select"
+                      :disabled="!form.canton"
                       :class="{ 'is-invalid': intento && errores.distrito }"
-                    />
+                    >
+                      <option value="">{{ form.canton ? 'Seleccionar…' : 'Elegí cantón' }}</option>
+                      <option v-for="d in distritos" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+                    </select>
                     <div class="invalid-feedback">{{ errores.distrito }}</div>
                   </div>
                   <div class="col-md-4">
@@ -331,7 +400,8 @@ function formatearVencimiento() {
             <div class="card-body">
               <h2 class="h5 mb-3">Resumen de la orden</h2>
 
-              <!-- Todos los montos salen del store, el IVA lo calcula el store -->
+              <!-- Los precios ya incluyen IVA; en el resumen de pago no se menciona.
+                   El desglose del IVA se muestra en la factura. -->
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-secondary">Subtotal</span>
                 <span>{{ formatearColones(carrito.subtotal) }}</span>
@@ -339,10 +409,6 @@ function formatearVencimiento() {
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-secondary">Envío</span>
                 <span class="text-success">Gratis</span>
-              </div>
-              <div class="d-flex justify-content-between mb-2">
-                <span class="text-secondary">IVA (13%)</span>
-                <span>{{ formatearColones(carrito.iva) }}</span>
               </div>
               <hr />
               <div class="d-flex justify-content-between fw-bold fs-5 mb-3">

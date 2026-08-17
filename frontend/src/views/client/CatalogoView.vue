@@ -1,14 +1,24 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ProductCard from '../../components/ProductCard.vue'
-import categorias from '../../data/categorias.json'
 import { useProductosStore } from '../../stores/productos'
+import { useCategoriasStore } from '../../stores/categorias'
 import { formatearColones } from '../../utils/formato'
 
 const route = useRoute()
 // Productos desde el store (fuente única, refleja stock y ediciones del admin).
-const productos = useProductosStore().lista
+const productosStore = useProductosStore()
+const productos = productosStore.lista
+
+const categoriasStore = useCategoriasStore()
+const categorias = computed(() => categoriasStore.lista)
+onMounted(() => {
+  // Recarga al entrar al catálogo para reflejar stock/ediciones del admin sin
+  // tener que refrescar toda la app.
+  productosStore.cargar().catch(() => {})
+  if (!categoriasStore.lista.length) categoriasStore.cargar().catch(() => {})
+})
 
 // Precio más alto del catálogo → tope del deslizador de precio.
 const precioTope = computed(() => Math.max(0, ...productos.map((p) => p.precio)))

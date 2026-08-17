@@ -44,6 +44,12 @@ const routes = [
     component: () => import("../views/client/CuentaView.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/factura/:numero",
+    name: "factura",
+    component: () => import("../views/client/FacturaView.vue"),
+    meta: { requiresAuth: true },
+  },
   
   {
     path: "/admin",
@@ -55,6 +61,12 @@ const routes = [
     path: "/admin/inventario",
     name: "admin-inventario",
     component: () => import("../views/admin/AdminInventarioView.vue"),
+    meta: { admin: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/categorias",
+    name: "admin-categorias",
+    component: () => import("../views/admin/AdminCategoriasView.vue"),
     meta: { admin: true, requiresAdmin: true },
   },
 ];
