@@ -64,11 +64,15 @@ async function createOrder(req, res) {
         }
       }
 
+      const userId = getUserId(req.user)
       const [created] = await Order.create([{
         numero: `MQ-${Math.floor(10000 + Math.random() * 90000)}`,
         fecha: new Date(),
-        userId: getUserId(req.user),
+        userId,
         usuario: req.user?.email || null,
+        // Solo se referencia si el id es un ObjectId real (usuario local); los
+        // tokens externos o invitados quedan en null.
+        usuarioRef: mongoose.isValidObjectId(userId) ? userId : null,
         items: lines,
         shipping: normalizedShipping,
         ...totals,
@@ -104,7 +108,13 @@ router.get('/by-number/:numero', authenticate, async (req, res) => {
 })
 
 router.get('/admin/all', authenticate, requireAdmin, async (req, res) => {
-  const orders = await Order.find().sort({ createdAt: -1 }).limit(100).lean()
+  // .populate() une cada orden con su usuario (relación ORM) para traer nombre y
+  // correo desde la colección de usuarios sin guardarlos duplicados en la orden.
+  const orders = await Order.find()
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate('usuarioRef', 'nombre correo tipoUsuario')
+    .lean()
   res.json({ orders })
 })
 

@@ -32,6 +32,10 @@ const orderSchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
   userId: { type: String, default: null, index: true },
   usuario: { type: String, default: null },
+  // Relación con ORM: referencia (ObjectId) al documento del usuario que hizo la
+  // orden. Permite unir con la colección de usuarios vía .populate() sin duplicar
+  // datos. Es null para invitados o tokens externos que no son ObjectId de Mongo.
+  usuarioRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', default: null, index: true },
   items: { type: [orderItemSchema], required: true },
   shipping: { type: shippingSchema, required: true },
   subtotal: { type: Number, required: true, min: 0 },
