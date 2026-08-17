@@ -1,4 +1,4 @@
-// consumo de la API pública de ubicaciones de Costa Rica (provincias, cantones ydistritos)
+// Consumo de la API pública de ubicaciones de Costa Rica (provincias, cantones y distritos).
 
 const BASE_URL = 'https://ubicaciones.paginasweb.cr'
 

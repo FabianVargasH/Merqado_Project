@@ -8,8 +8,16 @@ const router = express.Router()
 router.use(authenticate)
 
 function getUserId(user) {
-  return String(user.id || user.sub)
+  const id = user?.id || user?.sub
+  return id ? String(id) : null
 }
+
+// Rechaza tokens sin identificador de usuario (p. ej. externos incompletos): sin un
+// id válido no se puede aislar el carrito y se mezclarían entre usuarios inválidos.
+router.use((req, res, next) => {
+  if (!getUserId(req.user)) return res.status(401).json({ error: 'Invalid user' })
+  return next()
+})
 
 function sanitizeItems(items) {
   if (!Array.isArray(items)) return []

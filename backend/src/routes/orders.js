@@ -44,6 +44,8 @@ async function createOrder(req, res) {
   })
   const totals = calculateOrderTotals(lines)
 
+  // Se procesa el pago simulado (genera el comprobante) antes de abrir la
+  // transacción de stock + creación de la orden. El resultado se guarda en la orden.
   const payment = await processPayment({ montoCRC: totals.total })
   const session = await mongoose.startSession()
   let order
@@ -98,7 +100,12 @@ router.get('/me', authenticate, async (req, res) => {
 router.get('/by-number/:numero', authenticate, async (req, res) => {
   const order = await Order.findOne({ numero: req.params.numero }).lean()
   if (!order) return res.status(404).json({ error: 'Order not found' })
-  if (order.userId !== getUserId(req.user) && req.user.role !== 'admin') {
+  const userId = getUserId(req.user)
+  const esAdmin = req.user.role === 'admin'
+  // Sin id de usuario (token externo incompleto) y sin ser admin no se autoriza:
+  // de lo contrario null === null dejaría ver órdenes de invitado (userId: null).
+  if (!esAdmin && !userId) return res.status(401).json({ error: 'Invalid user' })
+  if (!esAdmin && order.userId !== userId) {
     return res.status(403).json({ error: 'Not allowed to view this order' })
   }
   return res.json({ order })
